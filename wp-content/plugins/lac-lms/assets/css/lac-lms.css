@@ -5,7 +5,8 @@
  */
 
 /* Enroll call-to-action button base look */
-.lac-enroll-button {
+.lac-enroll-button,
+.lac-enroll-link {
 	appearance: none;
 	border: 0;
 	cursor: pointer;
@@ -18,12 +19,17 @@
 	color: #f8fafc;
 	transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
 	box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+	display: inline-block;
+	text-align: center;
+	text-decoration: none;
 }
 
 /* Hover lift for interactive feedback */
-.lac-enroll-button:hover {
+.lac-enroll-button:hover,
+.lac-enroll-link:hover {
 	transform: translateY(-2px);
 	background: #0d9488;
+	color: #f8fafc;
 }
 
 /* Disabled state while a request is pending */
@@ -421,12 +427,128 @@
 @media (max-width: 900px) {
 	.lac-product__hero-inner,
 	.lac-product__layout,
-	.lac-catalog__grid {
+	.lac-catalog__grid,
+	.lac-checkout__grid {
 		grid-template-columns: 1fr;
 	}
 
 	.lac-product__buy-card {
 		position: static;
 	}
+}
+
+/* ===== Checkout page ===== */
+.lac-checkout {
+	padding: 2.5rem 1.25rem 4rem;
+	background:
+		radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 36%),
+		linear-gradient(180deg, #0b1220 0%, #f8fafc 320px);
+}
+
+.lac-checkout__grid {
+	max-width: 1080px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: 1.2fr 0.8fr;
+	gap: 1.75rem;
+	align-items: start;
+}
+
+.lac-checkout__summary,
+.lac-checkout__panel {
+	background: #fff;
+	border-radius: 1.25rem;
+	padding: 1.75rem;
+	box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.lac-checkout__eyebrow {
+	margin: 0 0 0.5rem;
+	font-size: 0.85rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #0f766e;
+}
+
+.lac-checkout__title {
+	margin: 0 0 0.85rem;
+	font-size: clamp(1.8rem, 3vw, 2.5rem);
+	line-height: 1.15;
+	color: #0f172a;
+}
+
+.lac-checkout__excerpt {
+	margin: 0 0 1rem;
+	color: #475569;
+	line-height: 1.6;
+}
+
+.lac-checkout__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+	list-style: none;
+	margin: 0 0 1.25rem;
+	padding: 0;
+}
+
+.lac-checkout__meta li {
+	background: #ecfdf5;
+	color: #115e59;
+	border-radius: 999px;
+	padding: 0.35rem 0.75rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.lac-checkout__back {
+	color: #0f766e;
+	font-weight: 650;
+	text-decoration: none;
+}
+
+.lac-checkout__image {
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	object-fit: cover;
+	border-radius: 1rem;
+	margin-bottom: 1rem;
+}
+
+.lac-checkout__total-label {
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: #64748b;
+}
+
+.lac-checkout__total {
+	margin: 0.35rem 0 1.25rem;
+	font-size: 2rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+
+.lac-checkout__actions {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.lac-checkout--empty {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 3rem 1.25rem;
+}
+
+.lac-enroll-link.is-login {
+	background: #1d4ed8;
+	box-shadow: 0 10px 24px rgba(29, 78, 216, 0.28);
+}
+
+.lac-enroll-link.is-login:hover {
+	background: #1e40af;
 }
 

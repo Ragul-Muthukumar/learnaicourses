@@ -3,7 +3,7 @@
  * Plugin Name: LAC LMS
  * Plugin URI:  http://localhost/learnaicourses
  * Description: Learn AI Courses LMS — courses, lessons, enrollment, PayPal checkout, and REST APIs.
- * Version:     1.2.0
+ * Version:     1.3.0
  * Author:      Learn AI Courses
  * Text Domain: lac-lms
  * Requires at least: 6.4
@@ -32,7 +32,7 @@ define( 'LAC_LMS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'LAC_LMS_URL', plugin_dir_url( __FILE__ ) );
 
  // Semantic version used for cache-busting enqueued assets.
-define( 'LAC_LMS_VERSION', '1.2.0' );
+define( 'LAC_LMS_VERSION', '1.3.0' );
 
  // Shared helpers: logging, id hashing, and response shaping.
 require_once LAC_LMS_PATH . 'includes/common.php';
@@ -51,6 +51,9 @@ require_once LAC_LMS_PATH . 'includes/cpt-lesson.php';
 
  // PayPal Orders API helpers for paid course checkout.
 require_once LAC_LMS_PATH . 'includes/paypal.php';
+
+ // Checkout page bootstrap, URLs, and checkout shortcode.
+require_once LAC_LMS_PATH . 'includes/checkout.php';
 
  // Enrollment and purchase CTAs for logged-in learners.
 require_once LAC_LMS_PATH . 'includes/enrollment.php';
@@ -84,8 +87,10 @@ function lac_lms_activate() {
 	flush_rewrite_rules();
 	 // Seed demo AI courses only once on a fresh install.
 	lac_seed_demo_content_if_needed();
+	 // Ensure the checkout page exists for enroll / purchase flows.
+	lac_ensure_checkout_page();
 	 // Persist the schema version for future upgrades.
-	update_option( 'lac_lms_db_version', '1.2.0' );
+	update_option( 'lac_lms_db_version', '1.3.0' );
 	 // Record a successful activation in the debug log.
 	lac_log_info( 'LAC LMS activated successfully.' );
 }
@@ -138,8 +143,11 @@ add_action( 'plugins_loaded', 'lac_lms_maybe_upgrade_schema' );
  * @return void
  */
 function lac_lms_enqueue_assets() {
-	 // Load LMS styles for course archives and single course views.
-	if ( is_post_type_archive( 'lac_course' ) || is_singular( array( 'lac_course', 'lac_lesson' ) ) || is_front_page() ) {
+	 // Detect whether the current request is the LMS checkout page.
+	$checkout_page_id = lac_get_checkout_page_id();
+	$is_checkout_page = $checkout_page_id > 0 && is_page( $checkout_page_id );
+	 // Load LMS styles for course archives, single course views, and checkout.
+	if ( is_post_type_archive( 'lac_course' ) || is_singular( array( 'lac_course', 'lac_lesson' ) ) || is_front_page() || $is_checkout_page ) {
 		 // Register the LMS stylesheet with a version for cache busting.
 		wp_enqueue_style(
 			'lac-lms-style',
@@ -147,8 +155,8 @@ function lac_lms_enqueue_assets() {
 			array(),
 			LAC_LMS_VERSION
 		);
-		 // Load the PayPal JS SDK only when live/sandbox credentials exist.
-		if ( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) {
+		 // Load the PayPal JS SDK on checkout when live/sandbox credentials exist.
+		if ( $is_checkout_page && lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) {
 			 // Build the SDK URL with client id, currency, and intent.
 			$paypal_sdk_url = add_query_arg(
 				array(
@@ -168,28 +176,31 @@ function lac_lms_enqueue_assets() {
 				true
 			);
 		}
-		 // Register the shared front-end script that posts enrollments / purchases.
-		wp_enqueue_script(
-			'lac-lms-common',
-			LAC_LMS_URL . 'assets/js/common.js',
-			( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) ? array( 'lac-paypal-sdk' ) : array(),
-			LAC_LMS_VERSION,
-			true
-		);
-		 // Expose REST nonce, login URL, and PayPal flags to the browser script.
-		wp_localize_script(
-			'lac-lms-common',
-			'lac_lms_config',
-			array(
-				'rest_url'          => esc_url_raw( rest_url( 'lac-lms/v1/' ) ),
-				'rest_nonce'        => wp_create_nonce( 'wp_rest' ),
-				'is_logged_in'      => is_user_logged_in() ? 1 : 0,
-				'login_url'         => wp_login_url( get_permalink() ),
-				'paypal_configured' => lac_paypal_is_configured() ? 1 : 0,
-				'paypal_mock'       => lac_paypal_is_mock_mode() ? 1 : 0,
-				'paypal_currency'   => lac_paypal_currency(),
-			)
-		);
+		 // Register checkout JS only on the checkout page where actions run.
+		if ( $is_checkout_page ) {
+			wp_enqueue_script(
+				'lac-lms-common',
+				LAC_LMS_URL . 'assets/js/common.js',
+				( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) ? array( 'lac-paypal-sdk' ) : array(),
+				LAC_LMS_VERSION,
+				true
+			);
+			 // Expose REST nonce, login URL, and PayPal flags to the browser script.
+			wp_localize_script(
+				'lac-lms-common',
+				'lac_lms_config',
+				array(
+					'rest_url'          => esc_url_raw( rest_url( 'lac-lms/v1/' ) ),
+					'rest_nonce'        => wp_create_nonce( 'wp_rest' ),
+					'is_logged_in'      => is_user_logged_in() ? 1 : 0,
+					'login_url'         => wp_login_url( get_permalink() ),
+					'paypal_configured' => lac_paypal_is_configured() ? 1 : 0,
+					'paypal_mock'       => lac_paypal_is_mock_mode() ? 1 : 0,
+					'paypal_currency'   => lac_paypal_currency(),
+					'is_checkout_page'  => 1,
+				)
+			);
+		}
 	}
 }
 

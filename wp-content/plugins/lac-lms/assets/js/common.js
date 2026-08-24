@@ -35,7 +35,7 @@
 	}
 
 	/**
-	 * Convert a purchase wrap or button into a continue-learning control.
+	 * Redirect to continue learning or swap the CTA after success.
 	 * @param {HTMLElement} source_el Button or PayPal wrap element.
 	 * @param {string} course_id Encrypted course id.
 	 * @param {string} success_message Confirmation text.
@@ -44,13 +44,20 @@
 		// Prefer replacing the outer paypal wrap when present.
 		const wrap_el = source_el.classList.contains('lac-paypal-wrap')
 			? source_el
-			: source_el.closest('.lac-product__buy-actions, .lac-product__hero-actions, .lac-paypal-wrap') || source_el.parentElement;
+			: source_el.closest('.lac-product__buy-actions, .lac-product__hero-actions, .lac-paypal-wrap, [data-lac-checkout-actions]') || source_el.parentElement;
+		// On checkout, jump straight to the first lesson after payment or enroll.
+		const checkout_actions_el = wrap_el && wrap_el.matches('[data-lac-checkout-actions]')
+			? wrap_el
+			: (wrap_el ? wrap_el.closest('[data-lac-checkout-actions]') : null);
+		const continue_url = checkout_actions_el ? checkout_actions_el.dataset.continue_url : '';
+		if (continue_url) {
+			window.location.href = continue_url;
+			return;
+		}
 		// Build a continue button matching the enrolled CTA style.
-		const button_el = document.createElement('button');
-		button_el.type = 'button';
-		button_el.className = 'lac-enroll-button is-enrolled';
-		button_el.dataset.course_id = course_id;
-		button_el.dataset.action = 'enroll';
+		const button_el = document.createElement('a');
+		button_el.className = 'lac-enroll-button lac-enroll-link is-enrolled';
+		button_el.href = continue_url || '#';
 		button_el.textContent = 'Continue learning';
 		// Keep a message element for post-purchase feedback.
 		let message_el = wrap_el ? wrap_el.querySelector('.lac-enroll-message') : null;
@@ -110,6 +117,11 @@
 			button_el.textContent = 'Continue learning';
 			// Confirm success under the button.
 			lac_show_message(message_el, payload.message || 'Enrolled successfully.', false);
+			// Redirect checkout enrollments to the first lesson when configured.
+			const checkout_actions_el = button_el.closest('[data-lac-checkout-actions]');
+			if (checkout_actions_el && checkout_actions_el.dataset.continue_url) {
+				window.location.href = checkout_actions_el.dataset.continue_url;
+			}
 		} catch (error) {
 			// Show a readable failure message.
 			lac_show_message(message_el, error.message || 'Something went wrong.', true);
@@ -271,18 +283,25 @@
 
 	// Bind listeners once the DOM is interactive.
 	document.addEventListener('DOMContentLoaded', function () {
-		// Bind free enroll and mock purchase buttons.
-		document.querySelectorAll('.lac-enroll-button').forEach(function (button_el) {
+		// Checkout-only flows: course pages now link to /checkout/ instead.
+		const checkout_root = document.querySelector('.lac-checkout, [data-lac-checkout-actions]');
+		if (!checkout_root) {
+			return;
+		}
+		// Bind free enroll and mock purchase buttons inside checkout.
+		checkout_root.querySelectorAll('.lac-enroll-button').forEach(function (button_el) {
 			button_el.addEventListener('click', function () {
 				if (button_el.dataset.action === 'purchase' || button_el.classList.contains('is-purchase')) {
 					lac_handle_purchase_click(button_el);
 					return;
 				}
-				lac_handle_enroll_click(button_el);
+				if (button_el.dataset.action === 'enroll' || button_el.classList.contains('is-available')) {
+					lac_handle_enroll_click(button_el);
+				}
 			});
 		});
-		// Mount PayPal buttons when the SDK and wraps are present.
-		const paypal_wraps = document.querySelectorAll('.lac-paypal-wrap');
+		// Mount PayPal buttons when the SDK and wraps are present on checkout.
+		const paypal_wraps = checkout_root.querySelectorAll('.lac-paypal-wrap');
 		if (paypal_wraps.length && Number(lac_config.paypal_configured) && !Number(lac_config.paypal_mock)) {
 			paypal_wraps.forEach(function (wrap_el) {
 				lac_mount_paypal_buttons(wrap_el);

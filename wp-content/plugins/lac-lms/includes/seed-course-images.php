@@ -347,3 +347,96 @@ function lac_seed_course_featured_images( $batch_limit = 0 ) {
 	unset( $batch_limit );
 	return lac_replace_course_featured_images( false );
 }
+
+/**
+ * Repair featured images when Media Library paths no longer match files on disk.
+ *
+ * What this does:
+ * - Looks for course-{id}-cover.jpg under uploads/2026/08/.
+ * - Updates the featured attachment path and regenerates image sizes.
+ * Process:
+ * 1) Skip when already repaired (option flag).
+ * 2) For each published course, remap the thumbnail to the cover file if present.
+ *
+ * @return void
+ */
+function lac_repair_course_cover_attachments_if_needed() {
+	 // Run this repair only once unless forced by deleting the option.
+	if ( get_option( 'lac_course_covers_repaired_v1' ) ) {
+		return;
+	}
+	 // Need image helpers to rebuild attachment metadata.
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	 // Resolve the uploads directory used for course covers.
+	$upload_dir = wp_upload_dir();
+	$rel_dir    = '2026/08';
+	$abs_dir    = trailingslashit( $upload_dir['basedir'] ) . $rel_dir . '/';
+	 // Load every published course id.
+	$course_ids = get_posts(
+		array(
+			'post_type'      => 'lac_course',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+	 // Track how many courses were remapped.
+	$fixed_count = 0;
+	foreach ( $course_ids as $course_id ) {
+		 // Build the expected cover filename for this course.
+		$cover_name = 'course-' . absint( $course_id ) . '-cover.jpg';
+		$cover_abs  = $abs_dir . $cover_name;
+		$cover_rel  = $rel_dir . '/' . $cover_name;
+		 // Skip when the cover file is not on disk.
+		if ( ! file_exists( $cover_abs ) ) {
+			continue;
+		}
+		 // Read the current featured attachment id.
+		$attachment_id = (int) get_post_thumbnail_id( $course_id );
+		 // Skip when the current attachment already points at the cover file.
+		if ( $attachment_id > 0 ) {
+			$current_file = (string) get_attached_file( $attachment_id );
+			if ( $current_file && file_exists( $current_file ) && basename( $current_file ) === $cover_name ) {
+				continue;
+			}
+		}
+		 // Create an attachment when the course has no featured image.
+		if ( $attachment_id < 1 ) {
+			$attachment_id = wp_insert_attachment(
+				array(
+					'post_mime_type' => 'image/jpeg',
+					'post_title'     => get_the_title( $course_id ) . ' cover',
+					'post_content'   => '',
+					'post_status'    => 'inherit',
+					'post_parent'    => $course_id,
+				),
+				$cover_abs,
+				$course_id,
+				true
+			);
+			if ( is_wp_error( $attachment_id ) ) {
+				lac_log_error( 'Cover attachment insert failed for course ' . absint( $course_id ) );
+				continue;
+			}
+		} else {
+			 // Point the existing attachment at the real cover file.
+			update_attached_file( $attachment_id, $cover_abs );
+			update_post_meta( $attachment_id, '_wp_attached_file', $cover_rel );
+		}
+		 // Rebuild WordPress image sizes from the cover JPEG.
+		$metadata = wp_generate_attachment_metadata( $attachment_id, $cover_abs );
+		if ( ! empty( $metadata ) ) {
+			wp_update_attachment_metadata( $attachment_id, $metadata );
+		}
+		 // Ensure the course uses this attachment as its featured image.
+		set_post_thumbnail( $course_id, $attachment_id );
+		$fixed_count++;
+	}
+	 // Persist the one-time repair flag.
+	update_option( 'lac_course_covers_repaired_v1', 1, true );
+	 // Log the number of remapped covers for operators.
+	lac_log_info( 'Repaired course cover attachments: ' . absint( $fixed_count ) );
+}
+
+ // Auto-repair broken cover paths after plugins load.
+add_action( 'init', 'lac_repair_course_cover_attachments_if_needed', 40 );
