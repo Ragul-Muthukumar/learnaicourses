@@ -36,6 +36,9 @@ define( 'LAC_LMS_VERSION', '1.0.0' );
  // Shared helpers: logging, id hashing, and response shaping.
 require_once LAC_LMS_PATH . 'includes/common.php';
 
+ // One-time activation of the Online Courses FSE storefront theme.
+require_once LAC_LMS_PATH . 'includes/activate-theme.php';
+
  // Named database query functions (no inline SQL in feature files).
 require_once LAC_LMS_PATH . 'includes/db.php';
 
