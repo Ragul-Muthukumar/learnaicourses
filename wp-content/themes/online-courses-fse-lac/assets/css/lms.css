@@ -409,6 +409,15 @@ body.lac-fse-lms video {
 
 	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open {
 		padding: 4.5rem 1.5rem 2rem;
+		--navigation-layout-justification-setting: flex-start;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
+		align-items: flex-start !important;
+		justify-content: flex-start !important;
+		width: 100%;
 	}
 
 	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item__content {
@@ -439,36 +448,48 @@ body.lac-fse-lms video {
 
 	/* Ease the 120px section padding used by homepage patterns. */
 	body.lac-fse-lms [style*="padding-top:120px"] {
-		padding-top: 4.5rem !important;
-	}
-
-	body.lac-fse-lms [style*="padding-bottom:120px"] {
-		padding-bottom: 4.5rem !important;
-	}
-
-	body.lac-fse-lms [style*="padding-top:100px"] {
-		padding-top: 3.5rem !important;
-	}
-
-	body.lac-fse-lms [style*="padding-top:80px"] {
 		padding-top: 3rem !important;
 	}
 
-	body.lac-fse-lms [style*="padding-bottom:80px"] {
+	body.lac-fse-lms [style*="padding-bottom:120px"] {
 		padding-bottom: 3rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-top:100px"] {
+		padding-top: 2.5rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-top:80px"] {
+		padding-top: 2.25rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-bottom:80px"] {
+		padding-bottom: 2.25rem !important;
 	}
 }
 
-/* Phone and portrait tablet: stacked layout, tap-sized controls, tighter type. */
+/* Phone and portrait tablet: denser rhythm, tap-sized controls, tighter type. */
 @media (max-width: 781px) {
+	body.lac-fse-lms {
+		--wp--style--root--padding-left: 1rem;
+		--wp--style--root--padding-right: 1rem;
+		--wp--style--block-gap: 0.85rem;
+	}
+
+	/* Constrained/flow layouts use sibling margins instead of CSS gap. */
+	body.lac-fse-lms main .is-layout-constrained > * + *,
+	body.lac-fse-lms main .is-layout-flow > * + * {
+		margin-block-start: 0.75rem !important;
+	}
+
 	body.lac-fse-lms .wp-site-blocks {
 		padding-left: 1rem !important;
 		padding-right: 1rem !important;
 	}
 
 	body.lac-fse-lms header .wp-block-group.is-content-justification-space-between.is-layout-flex {
-		padding-top: 12px !important;
-		padding-bottom: 12px !important;
+		padding-top: 10px !important;
+		padding-bottom: 10px !important;
 	}
 
 	body.lac-fse-lms header .wp-block-site-logo {
@@ -479,26 +500,68 @@ body.lac-fse-lms video {
 	body.lac-fse-lms .wp-block-post-title,
 	body.lac-fse-lms .lac-course-hero h1,
 	body.lac-fse-lms .lac-lesson h1 {
-		font-size: clamp(1.7rem, 7vw, 2.15rem) !important;
-		line-height: 1.2 !important;
+		font-size: clamp(1.55rem, 6.4vw, 1.95rem) !important;
+		line-height: 1.18 !important;
+		margin: 0 0 0.4rem !important;
 	}
 
 	body.lac-fse-lms h2 {
-		font-size: clamp(1.35rem, 5vw, 1.75rem) !important;
+		font-size: clamp(1.2rem, 4.6vw, 1.5rem) !important;
 		line-height: 1.25 !important;
+		margin: 0 0 0.4rem !important;
+	}
+
+	body.lac-fse-lms h3,
+	body.lac-fse-lms h4 {
+		margin: 0 0 0.3rem !important;
+	}
+
+	body.lac-fse-lms p {
+		margin: 0 0 0.55rem !important;
 	}
 
 	body.lac-fse-lms .lac-lede,
 	body.lac-fse-lms .lac-learning-path .wp-block-post-excerpt p,
 	body.lac-fse-lms .lac-learning-path p[style*="font-size:19px"] {
-		font-size: 1rem !important;
+		font-size: 0.95rem !important;
+		line-height: 1.45 !important;
 	}
 
-	/* Content buttons stack and fill the row; header CTA stays inline. */
+	/* Tighten stacked columns and pattern groups. */
+	body.lac-fse-lms main .wp-block-columns,
+	body.lac-fse-lms main .wp-block-group.is-layout-flex,
+	body.lac-fse-lms main .wp-block-group.is-vertical,
+	body.lac-fse-lms main .wp-block-column {
+		gap: 0.7rem !important;
+		row-gap: 0.7rem !important;
+		--wp--style--block-gap: 0.7rem;
+	}
+
+	body.lac-fse-lms .wp-block-column .wp-block-image.alignfull {
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+		max-width: 100%;
+	}
+
+	/* Keep photos from dominating the scroll; banners stay uncropped. */
+	body.lac-fse-lms .wp-block-column .wp-block-image img {
+		max-height: 240px;
+		width: 100%;
+		object-fit: cover;
+		object-position: center 20%;
+	}
+
+	body.lac-fse-lms .lac-path-banner img {
+		max-height: none;
+		height: auto;
+		object-fit: contain;
+	}
+
 	body.lac-fse-lms main .wp-block-buttons {
 		flex-direction: column;
 		align-items: stretch;
-		gap: 12px;
+		gap: 8px;
+		margin: 0;
 	}
 
 	body.lac-fse-lms main .wp-block-button,
@@ -512,9 +575,9 @@ body.lac-fse-lms video {
 	body.lac-fse-lms main .wp-block-button__link,
 	body.lac-fse-lms .lac-enroll-button {
 		min-height: 44px;
-		padding-top: 12px !important;
-		padding-bottom: 12px !important;
-		font-size: 16px !important;
+		padding-top: 11px !important;
+		padding-bottom: 11px !important;
+		font-size: 15px !important;
 		white-space: normal;
 	}
 
@@ -525,70 +588,125 @@ body.lac-fse-lms video {
 		justify-content: center;
 	}
 
+	/* Feature tiles and about-us text cards. */
 	body.lac-fse-lms .wp-block-column[style*="padding-right:50px"],
 	body.lac-fse-lms .wp-block-column[style*="padding-left:50px"] {
-		padding-top: 1.5rem !important;
-		padding-right: 1.25rem !important;
-		padding-bottom: 1.5rem !important;
-		padding-left: 1.25rem !important;
+		padding: 0.9rem 0.95rem !important;
 	}
 
 	body.lac-fse-lms .wp-block-column[style*="padding-top:60px"] {
-		padding-top: 1.5rem !important;
-		padding-bottom: 1.5rem !important;
-		padding-left: 1.25rem !important;
-		padding-right: 1.25rem !important;
+		padding: 1rem !important;
 	}
 
 	body.lac-fse-lms .wp-block-group[style*="padding-left:50px"],
 	body.lac-fse-lms .wp-block-group[style*="padding-right:50px"] {
-		padding-left: 1.25rem !important;
-		padding-right: 1.25rem !important;
+		padding-left: 1.1rem !important;
+		padding-right: 1.1rem !important;
+		padding-top: 1.5rem !important;
+		padding-bottom: 1.5rem !important;
 	}
 
 	body.lac-fse-lms .wp-block-cover {
-		min-height: 280px !important;
-		padding: 2.5rem 1.25rem !important;
+		min-height: 220px !important;
+		padding: 1.75rem 1.1rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-group.alignfull[style*="padding-left:20px"] {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	body.lac-fse-lms .lac-fse-course-card .wp-block-read-more {
+		margin-top: 0.15rem;
 	}
 
 	body.lac-fse-lms .lac-fse-course-card {
-		padding: 16px !important;
+		padding: 12px !important;
+		gap: 0.55rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-post-template {
+		gap: 14px !important;
 	}
 
 	body.lac-fse-lms .wp-block-query-pagination {
-		gap: 8px;
+		gap: 6px;
 		flex-wrap: wrap;
+		margin-top: 1rem;
 	}
 
 	body.lac-fse-lms .wp-block-query-pagination a,
 	body.lac-fse-lms .wp-block-query-pagination .page-numbers {
-		min-width: 44px;
-		min-height: 44px;
+		min-width: 40px;
+		min-height: 40px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 	}
 
+	/* FAQ rows were ~180px because of extra-large type and 24/35 padding. */
+	body.lac-fse-lms .wp-block-accordion {
+		gap: 8px !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-item,
+	body.lac-fse-lms .wp-block-accordion-heading {
+		font-size: 0.95rem !important;
+		line-height: 1.35 !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-heading,
 	body.lac-fse-lms .wp-block-accordion-heading__toggle {
-		min-height: 48px;
+		padding: 12px 14px !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-heading__toggle {
+		min-height: 44px;
 		text-align: left;
-		padding: 14px 16px;
+		align-items: center;
+		gap: 8px;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-panel {
+		padding: 0 14px 12px !important;
 	}
 
 	body.lac-fse-lms .lac-lesson-list a {
 		flex-wrap: wrap;
 		align-items: flex-start;
 		gap: 0.5rem;
+		padding: 0.65rem 0;
 	}
 
+	/* Footer: logo full width, then two link columns. */
 	body.lac-fse-lms footer .wp-block-group.is-content-justification-space-between.is-layout-flex {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 1.75rem;
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		align-items: start;
+		gap: 1.1rem 1.25rem !important;
+	}
+
+	body.lac-fse-lms footer .footer-logo-column {
+		grid-column: 1 / -1;
+		margin-bottom: 0 !important;
+	}
+
+	body.lac-fse-lms footer .wp-block-group.is-vertical {
+		gap: 0.45rem !important;
+	}
+
+	body.lac-fse-lms footer .wp-block-navigation {
+		gap: 0 !important;
 	}
 
 	body.lac-fse-lms footer .wp-block-navigation .wp-block-navigation-item__content {
-		padding: 0.35rem 0;
+		padding: 0.2rem 0;
+		line-height: 1.4;
+		font-size: 0.95rem;
+	}
+
+	body.lac-fse-lms footer .wp-block-spacer {
+		height: 12px !important;
 	}
 
 	body.lac-fse-lms h1,
@@ -622,29 +740,55 @@ body.lac-fse-lms video {
 	body.lac-fse-lms [style*="padding-top:120px"],
 	body.lac-fse-lms [style*="padding-top:96px"],
 	body.lac-fse-lms [style*="padding-top:80px"] {
-		padding-top: 2.75rem !important;
+		padding-top: 1.6rem !important;
 	}
 
 	body.lac-fse-lms [style*="padding-bottom:120px"],
 	body.lac-fse-lms [style*="padding-bottom:96px"],
 	body.lac-fse-lms [style*="padding-bottom:80px"] {
-		padding-bottom: 2.75rem !important;
+		padding-bottom: 1.6rem !important;
 	}
 
-	body.lac-fse-lms [style*="padding-top:48px"] {
-		padding-top: 2rem !important;
+	body.lac-fse-lms [style*="padding-top:64px"],
+	body.lac-fse-lms [style*="padding-top:48px"],
+	body.lac-fse-lms [style*="padding-top:40px"] {
+		padding-top: 1.25rem !important;
 	}
 
+	body.lac-fse-lms [style*="padding-bottom:64px"],
 	body.lac-fse-lms [style*="padding-bottom:48px"] {
-		padding-bottom: 2rem !important;
+		padding-bottom: 1.25rem !important;
 	}
 
 	body.lac-fse-lms [style*="padding-left:32px"] {
-		padding-left: 1.15rem !important;
+		padding-left: 1rem !important;
 	}
 
 	body.lac-fse-lms [style*="padding-right:32px"] {
-		padding-right: 1.15rem !important;
+		padding-right: 1rem !important;
+	}
+
+	body.lac-fse-lms .lac-page-head,
+	body.lac-fse-lms .lac-course-hero {
+		padding: 1.25rem 0 1rem;
+	}
+
+	body.lac-fse-lms .lac-layout,
+	body.lac-fse-lms .lac-section {
+		padding-top: 1.1rem;
+		padding-bottom: 1.35rem;
+	}
+
+	body.lac-fse-lms .lac-summary {
+		padding: 0.9rem 1rem;
+	}
+
+	body.lac-fse-lms .lac-summary li {
+		padding: 0.3rem 0;
+	}
+
+	body.lac-fse-lms .lac-learning-path .wp-block-column {
+		padding: 0.9rem !important;
 	}
 }
 
@@ -661,25 +805,29 @@ body.lac-fse-lms video {
 	}
 
 	body.lac-fse-lms header .wp-block-site-logo {
-		max-width: min(140px, 58vw);
+		max-width: min(148px, 62vw);
+	}
+}
+
+/* Small tablets: 3-up sections become a 2-column grid instead of a tall stack. */
+@media (min-width: 600px) and (max-width: 781px) {
+	body.lac-fse-lms main .wp-block-columns:has(> .wp-block-column:nth-child(3)) {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		align-items: stretch;
 	}
 
-	body.lac-fse-lms .lac-page-head,
-	body.lac-fse-lms .lac-course-hero,
-	body.lac-fse-lms .lac-section,
-	body.lac-fse-lms .lac-layout {
-		padding-top: 1.75rem;
-		padding-bottom: 1.75rem;
-	}
-
-	body.lac-fse-lms .lac-summary {
-		padding: 1rem;
+	body.lac-fse-lms main .wp-block-columns:has(> .wp-block-column:nth-child(3)) > .wp-block-column {
+		flex-basis: auto !important;
+		width: auto !important;
+		max-width: none !important;
+		min-width: 0;
 	}
 }
 
 @media (max-width: 400px) {
 	body.lac-fse-lms header .wp-block-site-logo {
-		max-width: 120px;
+		max-width: 128px;
 	}
 
 	body.lac-fse-lms header .wp-block-site-logo img {
