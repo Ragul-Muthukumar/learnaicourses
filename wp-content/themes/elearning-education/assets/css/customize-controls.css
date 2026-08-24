@@ -1,0 +1,241 @@
+/* ---------Customizer--------- */
+
+.control-section-elearning-education h3.accordion-section-title {
+    color: #59d3b1 !important;
+    padding: 15px;
+    border: 1px solid #ddd !important;
+    border-left: none !important;
+    border-right: none !important;
+    line-height: 2;
+}
+#accordion-section-elearning_education_section_pro .accordion-section-title::after,
+#accordion-section-elearning_education_section_pro_demo .accordion-section-title::after,
+#accordion-section-elearning_education_documentation .accordion-section-title::after{
+  content: none;
+}
+#accordion-section-elearning_education_section_pro h3,
+#accordion-section-elearning_education_section_pro_demo h3,
+#accordion-section-elearning_education_documentation h3{
+  font-size: 15px;
+  font-weight: 700;
+}
+#accordion-section-elearning_education_section_pro .control-section-elearning-education h3.accordion-section-title {
+    color: #59d3b1 !important;
+}
+#accordion-section-elearning_education_section_pro a.button.button-secondary.alignright,
+#accordion-section-elearning_education_documentation a.button.button-secondary.alignright{
+    background: #59d3b1;
+}
+a.button.button-secondary.alignright {
+    color: #fff;
+    box-shadow: none;
+    font-weight: bold;
+    padding: 0 10px;
+    height: 31px;
+    border: none;
+}
+
+span.customize-control-title, .customize-control-title {
+    background: #bbb;
+    letter-spacing: 2px;
+    font-weight: 500;
+    font-size: 12px;
+    padding: 5px;
+    color: #fff;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+/* span.customize-control-title */
+.customize-control-toggle .toggle--wrapper span.customize-control-title{
+  background: none;
+  color: #50575e;
+  padding: 0px;
+  text-transform: none;
+}
+/*font awesome icon change css*/
+.type-icon{
+  overflow: hidden;
+}
+.selected-icon{
+  background: #fff;
+  height: 45px;
+  line-height: 45px;
+  text-align: center;
+  border: 1px solid #EEE;
+  position: relative;
+  margin-right: 45px;
+  cursor: pointer;
+  font-size: 28px;
+}
+.selected-icon .fa{
+  display: block;
+  line-height: 45px;
+  background: #fff;
+}
+.selected-icon span{
+  position: absolute;
+  background: #fff;
+  right: -45px;
+  top: -1px;
+  height: 45px;
+  width: 45px;
+  border: 1px solid #EEE;
+  font-size: 20px;
+}
+.icon-list{
+  height: 215px;
+  overflow-y: scroll;
+  font-size: 18px;
+  border: 1px solid #EEE;
+  background: #fff;
+  border-right: 0;
+  border-top: 0;
+  padding-bottom: 4%;
+  display: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+.icon-list li{
+  float: left;
+  margin: 4% 3% 0;
+  height: 40px;
+  width: 16%;
+  text-align: center;
+  line-height: 40px;
+  border: 1px solid #EEE;  
+}
+.icon-list li:hover{
+  background: #333;
+  border: 1px solid #333;
+  color: #FFF;
+}
+.icon-list li.icon-active{
+  background: #0073aa;
+  border: 1px solid #0073aa;
+  color: #FFF;
+}
+.elearning_education-social-class{
+  display: none;
+}
+.socialInput{
+  padding: 10px;
+  font-size: 16px;
+}
+#accordion-section-elearning_education_section_pro_demo h3.accordion-section-title{
+  color: #0d6efd !important;
+}
+#accordion-section-elearning_education_section_pro_demo a.button.button-secondary.alignright{
+  background-color: #0d6efd;
+}
+
+
+
+/*---------- Pro Version ---------------*/
+#customize-control-pro_version_ a.button-primary {
+  text-align: center;
+}
+
+li[id*="pro_version"] {
+  position: relative;
+  padding: 0 !important;
+  margin-top: 30px;
+  background: transparent;
+}
+
+li[id*="pro_version"] .dashicons {
+  float: left;
+  font-size: 20px;
+  margin-top: -1px;
+  margin-right: 8px;
+  font-size: 17px !important;
+}
+
+li[id*="pro_version"] a {
+  color: #0085ba;
+  text-decoration: none;
+  outline: none !important;
+}
+
+#accordion-section-pastry_bakers_pro h3 {
+  color: #fff !important;
+  background-color: #008EC2 !important;
+}
+
+#accordion-section-pastry_bakers_pro h3:after {
+  color: #fff !important;
+}
+
+.customize-control-pro_options .control-lock {
+  display: none !important;
+}
+
+#customize-control-pro_version_ ul li p a {
+  padding: 0 !important;
+  background-color: transparent !important;
+  color: #0073aa !important;
+  box-shadow: none !important;
+}
+
+#customize-control-pro_version_ h3 span {
+  color: red;
+  font-weight: bold;
+}
+
+#customize-control-pro_version_logo {
+  margin-bottom: 30px !important;
+}
+#customize-control-header_textcolor {
+  display: block !important;
+}
+#accordion-section-elearning_education_feature_request_section {
+  display: block !important;
+}
+li[id*="pro_version"] a {
+    color: #ffff00;
+    font-size: 15px;
+}
+button.button.wp-color-result{
+  margin-bottom: 15px !important;
+}
+li#customize-control-elearning_education_slider_pro_version_logo,
+li#customize-control-elearning_education_about_pro_version_logo,
+li#customize-control-elearning_education_social_media_pro_version_logo,
+li#customize-control-elearning_education_header_pro_version_logo,
+li#customize-control-elearning_education_menu_pro_version_logo,
+li#customize-control-elearning_education_preloader_pro_version_logo,
+li#customize-control-elearning_education_copyright_pro_version_logo,
+li#customize-control-elearning_education_footer_widget_pro_version_logo,
+li#customize-control-elearning_education_responsive_pro_version_logo,
+li#customize-control-online_courses_hub_course_pro_version_logo,
+li#customize-control-online_courses_hub_services_pro_version_logo,
+li#customize-control-university_education_hub_services_pro_version_logo,
+li#customize-control-elearning_academy_education_services_pro_version_logo{
+    background: #003f88;
+    display: inline;
+    padding: 10px 12px !important;
+    width: 90%;
+}
+li#customize-control-elearning_education_slider_pro_version_logo span,
+li#customize-control-elearning_education_about_pro_version_logo span,
+li#customize-control-elearning_education_social_media_pro_version_logo span,
+li#customize-control-elearning_education_header_pro_version_logo span,
+li#customize-control-elearning_education_menu_pro_version_logo span,
+li#customize-control-elearning_education_preloader_pro_version_logo span,
+li#customize-control-elearning_education_copyright_pro_version_logo span,
+li#customize-control-elearning_education_footer_widget_pro_version_logo span,
+li#customize-control-elearning_education_responsive_pro_version_logo span,
+li#customize-control-online_courses_hub_course_pro_version_logo span,
+li#customize-control-online_courses_hub_services_pro_version_logo span,
+li#customize-control-university_education_hub_services_pro_version_logo span,
+li#customize-control-elearning_academy_education_services_pro_version_logo span{
+    color: #fff;
+    font-size: 15px;
+}
+.customize-control-pro_options{
+  background: #003f88;
+    display: inline;
+    padding: 10px !important;
+}

@@ -1,0 +1,307 @@
+/**
+ * LMS layout for Online Courses FSE child.
+ * Matches the parent theme's green, rounded cards, and 1320px canvas.
+ */
+
+:root {
+	--lac-ink: #222222;
+	--lac-muted: #5b6470;
+	--lac-line: #dfe3e1;
+	--lac-paper: #f7fbf8;
+	--lac-card: #ffffff;
+	--lac-primary: #10b981;
+	--lac-primary-hover: #0d9669;
+	--lac-heading: #111827;
+}
+
+body.lac-fse-lms {
+	color: var(--lac-ink);
+}
+
+.lac-wrap {
+	width: min(1320px, calc(100% - 2.5rem));
+	margin: 0 auto;
+}
+
+.lac-kicker {
+	margin: 0 0 0.65rem;
+	font-size: 0.78rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--lac-primary);
+	font-weight: 700;
+}
+
+.lac-page-head h1,
+.lac-course-hero h1,
+.lac-lesson h1 {
+	margin: 0 0 0.75rem;
+	color: var(--lac-heading);
+	font-size: clamp(1.85rem, 3vw, 2.55rem);
+	line-height: 1.2;
+	font-weight: 800;
+}
+
+.lac-lede {
+	margin: 0 0 1.5rem;
+	max-width: 40rem;
+	color: var(--lac-muted);
+	font-size: 1.05rem;
+	line-height: 1.55;
+}
+
+.lac-section {
+	padding: 2.75rem 0;
+}
+
+.lac-section h2,
+.lac-layout h2 {
+	margin: 0 0 0.4rem;
+	color: var(--lac-heading);
+	font-size: 1.45rem;
+}
+
+.lac-course-grid {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.course-card,
+.lac-summary {
+	background: var(--lac-card);
+	border: 1px solid var(--lac-line);
+	border-radius: 16px;
+}
+
+.course-card {
+	text-decoration: none;
+	color: inherit;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.course-card:hover {
+	border-color: var(--lac-primary);
+}
+
+.course-card__media {
+	aspect-ratio: 16 / 10;
+	background: #e8f6ef;
+	overflow: hidden;
+}
+
+.course-card__media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.course-card__body {
+	padding: 1rem 1.15rem 1.2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	flex: 1;
+}
+
+.course-card__meta-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.5rem;
+	font-size: 0.8rem;
+	color: var(--lac-muted);
+	text-transform: capitalize;
+}
+
+.course-card__title {
+	margin: 0;
+	font-size: 1.15rem;
+	color: var(--lac-heading);
+	line-height: 1.3;
+}
+
+.course-card__excerpt {
+	margin: 0;
+	color: var(--lac-muted);
+	font-size: 0.92rem;
+	line-height: 1.45;
+}
+
+/* Header/footer must span the same full canvas as the homepage. */
+body.lac-fse-lms .wp-site-blocks > header.wp-block-template-part,
+body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
+	width: 100%;
+	max-width: none;
+}
+
+.lac-page-head {
+	padding: 2.5rem 0 1.25rem;
+	background: var(--wp--preset--color--background-4, #f1f9f6);
+}
+
+.lac-course-hero {
+	padding: 2.5rem 0 1.5rem;
+	background: var(--wp--preset--color--background-4, #f1f9f6);
+}
+
+.lac-course-hero__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.7fr);
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.lac-course-hero img {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 16px;
+}
+
+.lac-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	margin: 0 0 1.1rem;
+	padding: 0;
+	list-style: none;
+	color: var(--lac-muted);
+	font-size: 0.92rem;
+}
+
+.lac-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.6fr);
+	gap: 1.5rem;
+	padding: 2rem 0 3rem;
+}
+
+.lac-summary {
+	padding: 1.25rem;
+	position: sticky;
+	top: 1rem;
+}
+
+.lac-summary__price {
+	margin: 0 0 0.85rem;
+	font-size: 1.6rem;
+	color: var(--lac-heading);
+}
+
+.lac-summary ul {
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+}
+
+.lac-summary li {
+	padding: 0.4rem 0;
+	border-top: 1px solid var(--lac-line);
+	color: var(--lac-muted);
+	font-size: 0.92rem;
+}
+
+.lac-lesson-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.lac-lesson-list li {
+	border-top: 1px solid var(--lac-line);
+}
+
+.lac-lesson-list a {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.8rem 0;
+	text-decoration: none;
+	color: var(--lac-heading);
+}
+
+.lac-lesson-list a:hover {
+	color: var(--lac-primary);
+}
+
+.lac-crumb {
+	margin: 0 0 0.85rem;
+}
+
+.lac-crumb a {
+	color: var(--lac-muted);
+	text-decoration: none;
+}
+
+.lac-pagination {
+	margin: 1.75rem 0 0;
+}
+
+.lac-fse-course-card .wp-block-post-excerpt,
+.lac-fse-course-card .wp-block-read-more {
+	color: var(--lac-muted);
+}
+
+.lac-fse-course-card .wp-block-read-more {
+	font-weight: 600;
+	color: var(--lac-primary);
+	text-decoration: none;
+}
+
+/* Plugin enroll button: match FSE pill buttons. */
+.lac-enroll-button {
+	appearance: none;
+	border: 0;
+	background: var(--lac-primary);
+	color: #fff;
+	border-radius: 50px;
+	padding: 0.75rem 1.35rem;
+	font-weight: 600;
+	box-shadow: none;
+	transform: none;
+	cursor: pointer;
+}
+
+.lac-enroll-button:hover,
+.lac-enroll-button:focus {
+	background: var(--lac-primary-hover);
+	transform: none;
+	box-shadow: none;
+	color: #fff;
+}
+
+.lac-enroll-button.is-enrolled {
+	background: #fff;
+	color: var(--lac-primary);
+	border: 2px solid var(--lac-primary);
+	box-shadow: none;
+}
+
+.lac-enroll-message {
+	color: var(--lac-muted);
+}
+
+@media (max-width: 900px) {
+	.lac-course-grid,
+	.lac-course-hero__grid,
+	.lac-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.lac-summary {
+		position: static;
+	}
+
+	.wp-block-navigation {
+		flex-wrap: wrap;
+	}
+}
+
+@media (max-width: 600px) {
+	.lac-wrap {
+		width: min(1320px, calc(100% - 1.5rem));
+	}
+}

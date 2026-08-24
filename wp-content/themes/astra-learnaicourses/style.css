@@ -1,0 +1,13 @@
+/*
+Theme Name: Learn AI Courses (Astra)
+Theme URI: http://learnaicourses.local
+Author: Learn AI Courses
+Description: Astra child theme for the Learn AI Courses LMS. Uses Astra’s header, footer, and responsive layout with course catalog templates.
+Template: astra
+Version: 1.0.0
+Requires at least: 6.4
+Requires PHP: 8.1
+Text Domain: astra-learnaicourses
+*/
+
+/* Component styles load from assets/css/lms.css via functions.php. */
