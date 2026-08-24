@@ -1,0 +1,13 @@
+/*
+Theme Name: Learn AI Courses
+Theme URI: http://localhost/learnaicourses
+Author: Learn AI Courses
+Description: Brand-first theme for the Learn AI Courses WordPress LMS product. Ocean teal atmosphere, amber accents, and a full-bleed learning hero.
+Version: 1.0.0
+Requires at least: 6.4
+Tested up to: 6.8
+Requires PHP: 8.1
+Text Domain: learn-ai-courses
+*/
+
+/* Intentionally minimal root stylesheet; main styles live in assets/css/main.css */

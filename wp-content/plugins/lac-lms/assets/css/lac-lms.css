@@ -1,0 +1,81 @@
+/**
+ * Learn AI Courses LMS component styles.
+ * What this file does: styles enroll CTAs and lesson lists on course pages.
+ * Process: define CTA states, message feedback, and curriculum list rhythm.
+ */
+
+/* Enroll call-to-action button base look */
+.lac-enroll-button {
+	appearance: none;
+	border: 0;
+	cursor: pointer;
+	font-family: inherit;
+	font-weight: 650;
+	font-size: 1rem;
+	padding: 0.9rem 1.35rem;
+	border-radius: 999px;
+	background: #0f766e;
+	color: #f8fafc;
+	transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+	box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+}
+
+/* Hover lift for interactive feedback */
+.lac-enroll-button:hover {
+	transform: translateY(-2px);
+	background: #0d9488;
+}
+
+/* Disabled state while a request is pending */
+.lac-enroll-button:disabled {
+	opacity: 0.65;
+	cursor: wait;
+	transform: none;
+}
+
+/* Enrolled / continue state uses amber for contrast against teal */
+.lac-enroll-button.is-enrolled {
+	background: #b45309;
+	box-shadow: 0 10px 24px rgba(180, 83, 9, 0.25);
+}
+
+/* Inline status text under the CTA */
+.lac-enroll-message {
+	margin: 0.75rem 0 0;
+	font-size: 0.95rem;
+	color: #134e4a;
+}
+
+/* Error styling for failed enrollment attempts */
+.lac-enroll-message.is-error {
+	color: #b91c1c;
+}
+
+/* Curriculum list on single course pages */
+.lac-lesson-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.75rem;
+}
+
+/* Individual lesson row */
+.lac-lesson-list li a {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.95rem 1.1rem;
+	text-decoration: none;
+	color: #0f172a;
+	background: rgba(255, 255, 255, 0.72);
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	border-radius: 0.85rem;
+	transition: border-color 160ms ease, transform 160ms ease;
+}
+
+/* Subtle hover for lesson rows */
+.lac-lesson-list li a:hover {
+	border-color: rgba(15, 118, 110, 0.45);
+	transform: translateX(4px);
+}

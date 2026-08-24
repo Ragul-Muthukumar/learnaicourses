@@ -1,0 +1,14 @@
+# Ignore local secrets and runtime noise for Learn AI Courses
+.env
+wp-config.php
+wp-cli.phar
+router.php
+wp-content/debug.log
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/backup-db/
+*.log
+.DS_Store
+*.swp
+*.swo

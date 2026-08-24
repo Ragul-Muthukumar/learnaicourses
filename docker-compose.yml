@@ -1,0 +1,32 @@
+# Learn AI Courses — local MySQL for WordPress
+# Process:
+# 1) Start the database container with docker compose up -d
+# 2) Point WP DB_HOST at 127.0.0.1:13306 (see .env)
+# 3) Run WordPress via Apache at /learnaicourses
+services:
+  # MySQL 8 database service for the WordPress install
+  mysql:
+    # Official MySQL 8 image
+    image: mysql:8.0
+    # Stable container name for scripts and WP-CLI helpers
+    container_name: learnaicourses-mysql
+    # Restart unless the user stops it
+    restart: unless-stopped
+    # Database bootstrap environment variables
+    environment:
+      MYSQL_DATABASE: learnaicourses
+      MYSQL_USER: learnaicourses
+      MYSQL_PASSWORD: learnaicourses_pass
+      MYSQL_ROOT_PASSWORD: root_learnai_pass
+    # Publish MySQL on a free host port to avoid local conflicts
+    ports:
+      - "13306:3306"
+    # Persist database files across container recreations
+    volumes:
+      - lac_mysql_data:/var/lib/mysql
+    # Prefer native password auth for broad PHP mysqli compatibility
+    command: ["--default-authentication-plugin=mysql_native_password"]
+
+# Named volume for MySQL data persistence
+volumes:
+  lac_mysql_data:
