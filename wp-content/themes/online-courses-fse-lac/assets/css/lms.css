@@ -1,7 +1,25 @@
 /**
- * LMS layout for Online Courses FSE child.
+ * LMS layout for the Learn AI Courses FSE child.
  * Matches the parent theme's green, rounded cards, and 1320px canvas.
  */
+
+/* Branded wordmark: keep true aspect so the cap and “Learn AI Courses” stay sharp. */
+.wp-block-site-logo .custom-logo-link,
+.wp-block-site-logo .custom-logo {
+	display: block;
+}
+
+.wp-block-site-logo .custom-logo {
+	height: auto !important;
+	width: auto;
+	max-height: 42px;
+	max-width: min(280px, 72vw);
+}
+
+.footer-logo-column .custom-logo {
+	max-height: 36px;
+	max-width: min(240px, 80vw);
+}
 
 :root {
 	--lac-ink: #222222;
@@ -280,8 +298,36 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	box-shadow: none;
 }
 
+.lac-enroll-button.is-purchase {
+	width: 100%;
+	max-width: 22rem;
+}
+
+.lac-paypal-wrap {
+	display: grid;
+	gap: 0.75rem;
+	width: 100%;
+	max-width: 22rem;
+}
+
+.lac-paypal-price {
+	margin: 0;
+	font-weight: 700;
+	color: var(--lac-ink, #1a1a1a);
+}
+
+.lac-enroll-hint {
+	margin: 0.5rem 0 0;
+	font-size: 0.85rem;
+	color: var(--lac-muted);
+}
+
 .lac-enroll-message {
 	color: var(--lac-muted);
+}
+
+.lac-enroll-message.is-error {
+	color: #b91c1c;
 }
 
 @media (max-width: 900px) {
@@ -294,14 +340,525 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	.lac-summary {
 		position: static;
 	}
-
-	.wp-block-navigation {
-		flex-wrap: wrap;
-	}
 }
 
 @media (max-width: 600px) {
 	.lac-wrap {
 		width: min(1320px, calc(100% - 1.5rem));
+	}
+}
+
+/* Learning-path pages: keep course cards even and images cropped. */
+.lac-learning-path .wp-block-column img {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+/* Show the supplied banner at full width without cropping the title art. */
+.lac-path-banner {
+	margin: 0;
+}
+
+.lac-path-banner img {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+.lac-learning-path .wp-block-post-excerpt p {
+	margin: 0 0 1.25rem;
+	font-size: 1.15rem;
+	line-height: 1.55;
+}
+
+/* -------------------------------------------------------------------------
+   Responsive layout (max-width only). Desktop at 1200px+ is unchanged.
+   ------------------------------------------------------------------------- */
+
+/* Images may be larger than the canvas; this does not change desktop layout. */
+body.lac-fse-lms img,
+body.lac-fse-lms video {
+	max-width: 100%;
+	height: auto;
+}
+
+/* Tablet and below: hamburger + a single-row header. Desktop nav stays put. */
+@media (max-width: 1199px) {
+	body.lac-fse-lms header .wp-block-group.is-content-justification-space-between.is-layout-flex {
+		flex-wrap: nowrap !important;
+		align-items: center;
+		gap: 12px;
+		padding-top: 14px !important;
+		padding-bottom: 14px !important;
+	}
+
+	/* Cap the logo so it cannot stretch and shove the CTA onto a second row. */
+	body.lac-fse-lms header .wp-block-site-logo {
+		flex: 0 1 auto;
+		max-width: min(180px, 42vw);
+		min-width: 0;
+	}
+
+	body.lac-fse-lms header .wp-block-site-logo img {
+		width: auto !important;
+		max-width: 100%;
+		max-height: 36px;
+		height: auto !important;
+	}
+
+	body.lac-fse-lms header .is-content-justification-right.is-layout-flex {
+		flex-wrap: nowrap !important;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+
+	/* Compact the header CTA so it fits beside the menu icon. */
+	body.lac-fse-lms header .wp-block-button__link {
+		padding: 10px 16px !important;
+		font-size: 14px !important;
+		line-height: 1.2 !important;
+		white-space: nowrap;
+	}
+
+	/* Show the overlay toggle; WordPress only enables it below 600px by default. */
+	body.lac-fse-lms header .wp-block-navigation__responsive-container-open:not(.always-shown) {
+		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) {
+		display: none !important;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open {
+		padding: 4.5rem 1.5rem 2rem;
+		--navigation-layout-justification-setting: flex-start;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
+		align-items: flex-start !important;
+		justify-content: flex-start !important;
+		width: 100%;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item__content {
+		font-size: 1.15rem;
+		padding: 0.7rem 0 !important;
+		line-height: 1.35;
+	}
+
+	body.lac-fse-lms header .wp-block-navigation__responsive-container-close {
+		top: 1rem;
+		right: 1rem;
+		min-width: 44px;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Two columns for catalog cards; three-up is too tight on tablets. */
+	body.lac-fse-lms .wp-block-post-template.is-layout-grid,
+	body.lac-fse-lms .wp-block-post-template-is-layout-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	}
+
+	body.lac-fse-lms .lac-course-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	/* Ease the 120px section padding used by homepage patterns. */
+	body.lac-fse-lms [style*="padding-top:120px"] {
+		padding-top: 3rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-bottom:120px"] {
+		padding-bottom: 3rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-top:100px"] {
+		padding-top: 2.5rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-top:80px"] {
+		padding-top: 2.25rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-bottom:80px"] {
+		padding-bottom: 2.25rem !important;
+	}
+}
+
+/* Phone and portrait tablet: denser rhythm, tap-sized controls, tighter type. */
+@media (max-width: 781px) {
+	body.lac-fse-lms {
+		--wp--style--root--padding-left: 1rem;
+		--wp--style--root--padding-right: 1rem;
+		--wp--style--block-gap: 0.85rem;
+	}
+
+	/* Constrained/flow layouts use sibling margins instead of CSS gap. */
+	body.lac-fse-lms main .is-layout-constrained > * + *,
+	body.lac-fse-lms main .is-layout-flow > * + * {
+		margin-block-start: 0.75rem !important;
+	}
+
+	body.lac-fse-lms .wp-site-blocks {
+		padding-left: 1rem !important;
+		padding-right: 1rem !important;
+	}
+
+	body.lac-fse-lms header .wp-block-group.is-content-justification-space-between.is-layout-flex {
+		padding-top: 10px !important;
+		padding-bottom: 10px !important;
+	}
+
+	body.lac-fse-lms header .wp-block-site-logo {
+		max-width: min(148px, 46vw);
+	}
+
+	body.lac-fse-lms h1,
+	body.lac-fse-lms .wp-block-post-title,
+	body.lac-fse-lms .lac-course-hero h1,
+	body.lac-fse-lms .lac-lesson h1 {
+		font-size: clamp(1.55rem, 6.4vw, 1.95rem) !important;
+		line-height: 1.18 !important;
+		margin: 0 0 0.4rem !important;
+	}
+
+	body.lac-fse-lms h2 {
+		font-size: clamp(1.2rem, 4.6vw, 1.5rem) !important;
+		line-height: 1.25 !important;
+		margin: 0 0 0.4rem !important;
+	}
+
+	body.lac-fse-lms h3,
+	body.lac-fse-lms h4 {
+		margin: 0 0 0.3rem !important;
+	}
+
+	body.lac-fse-lms p {
+		margin: 0 0 0.55rem !important;
+	}
+
+	body.lac-fse-lms .lac-lede,
+	body.lac-fse-lms .lac-learning-path .wp-block-post-excerpt p,
+	body.lac-fse-lms .lac-learning-path p[style*="font-size:19px"] {
+		font-size: 0.95rem !important;
+		line-height: 1.45 !important;
+	}
+
+	/* Tighten stacked columns and pattern groups. */
+	body.lac-fse-lms main .wp-block-columns,
+	body.lac-fse-lms main .wp-block-group.is-layout-flex,
+	body.lac-fse-lms main .wp-block-group.is-vertical,
+	body.lac-fse-lms main .wp-block-column {
+		gap: 0.7rem !important;
+		row-gap: 0.7rem !important;
+		--wp--style--block-gap: 0.7rem;
+	}
+
+	body.lac-fse-lms .wp-block-column .wp-block-image.alignfull {
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+		max-width: 100%;
+	}
+
+	/* Keep photos from dominating the scroll; banners stay uncropped. */
+	body.lac-fse-lms .wp-block-column .wp-block-image img {
+		max-height: 240px;
+		width: 100%;
+		object-fit: cover;
+		object-position: center 20%;
+	}
+
+	body.lac-fse-lms .lac-path-banner img {
+		max-height: none;
+		height: auto;
+		object-fit: contain;
+	}
+
+	body.lac-fse-lms main .wp-block-buttons {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		margin: 0;
+	}
+
+	body.lac-fse-lms main .wp-block-button,
+	body.lac-fse-lms main .wp-block-button__link {
+		width: 100% !important;
+		max-width: 100%;
+		text-align: center;
+		box-sizing: border-box;
+	}
+
+	body.lac-fse-lms main .wp-block-button__link,
+	body.lac-fse-lms .lac-enroll-button {
+		min-height: 44px;
+		padding-top: 11px !important;
+		padding-bottom: 11px !important;
+		font-size: 15px !important;
+		white-space: normal;
+	}
+
+	body.lac-fse-lms .lac-enroll-button {
+		width: 100%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Feature tiles and about-us text cards. */
+	body.lac-fse-lms .wp-block-column[style*="padding-right:50px"],
+	body.lac-fse-lms .wp-block-column[style*="padding-left:50px"] {
+		padding: 0.9rem 0.95rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-column[style*="padding-top:60px"] {
+		padding: 1rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-group[style*="padding-left:50px"],
+	body.lac-fse-lms .wp-block-group[style*="padding-right:50px"] {
+		padding-left: 1.1rem !important;
+		padding-right: 1.1rem !important;
+		padding-top: 1.5rem !important;
+		padding-bottom: 1.5rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-cover {
+		min-height: 220px !important;
+		padding: 1.75rem 1.1rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-group.alignfull[style*="padding-left:20px"] {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	body.lac-fse-lms .lac-fse-course-card .wp-block-read-more {
+		margin-top: 0.15rem;
+	}
+
+	body.lac-fse-lms .lac-fse-course-card {
+		padding: 12px !important;
+		gap: 0.55rem !important;
+	}
+
+	body.lac-fse-lms .wp-block-post-template {
+		gap: 14px !important;
+	}
+
+	body.lac-fse-lms .wp-block-query-pagination {
+		gap: 6px;
+		flex-wrap: wrap;
+		margin-top: 1rem;
+	}
+
+	body.lac-fse-lms .wp-block-query-pagination a,
+	body.lac-fse-lms .wp-block-query-pagination .page-numbers {
+		min-width: 40px;
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* FAQ rows were ~180px because of extra-large type and 24/35 padding. */
+	body.lac-fse-lms .wp-block-accordion {
+		gap: 8px !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-item,
+	body.lac-fse-lms .wp-block-accordion-heading {
+		font-size: 0.95rem !important;
+		line-height: 1.35 !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-heading,
+	body.lac-fse-lms .wp-block-accordion-heading__toggle {
+		padding: 12px 14px !important;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-heading__toggle {
+		min-height: 44px;
+		text-align: left;
+		align-items: center;
+		gap: 8px;
+	}
+
+	body.lac-fse-lms .wp-block-accordion-panel {
+		padding: 0 14px 12px !important;
+	}
+
+	body.lac-fse-lms .lac-lesson-list a {
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.5rem;
+		padding: 0.65rem 0;
+	}
+
+	/* Footer: logo full width, then two link columns. */
+	body.lac-fse-lms footer .wp-block-group.is-content-justification-space-between.is-layout-flex {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		align-items: start;
+		gap: 1.1rem 1.25rem !important;
+	}
+
+	body.lac-fse-lms footer .footer-logo-column {
+		grid-column: 1 / -1;
+		margin-bottom: 0 !important;
+	}
+
+	body.lac-fse-lms footer .wp-block-group.is-vertical {
+		gap: 0.45rem !important;
+	}
+
+	body.lac-fse-lms footer .wp-block-navigation {
+		gap: 0 !important;
+	}
+
+	body.lac-fse-lms footer .wp-block-navigation .wp-block-navigation-item__content {
+		padding: 0.2rem 0;
+		line-height: 1.4;
+		font-size: 0.95rem;
+	}
+
+	body.lac-fse-lms footer .wp-block-spacer {
+		height: 12px !important;
+	}
+
+	body.lac-fse-lms h1,
+	body.lac-fse-lms h2,
+	body.lac-fse-lms h3,
+	body.lac-fse-lms h4,
+	body.lac-fse-lms p,
+	body.lac-fse-lms a {
+		overflow-wrap: anywhere;
+	}
+
+	body.lac-fse-lms iframe,
+	body.lac-fse-lms embed {
+		max-width: 100%;
+	}
+
+	body.lac-fse-lms input,
+	body.lac-fse-lms select,
+	body.lac-fse-lms textarea {
+		max-width: 100%;
+		font-size: 16px;
+	}
+
+	body.lac-fse-lms table {
+		display: block;
+		width: 100%;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+
+	body.lac-fse-lms [style*="padding-top:120px"],
+	body.lac-fse-lms [style*="padding-top:96px"],
+	body.lac-fse-lms [style*="padding-top:80px"] {
+		padding-top: 1.6rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-bottom:120px"],
+	body.lac-fse-lms [style*="padding-bottom:96px"],
+	body.lac-fse-lms [style*="padding-bottom:80px"] {
+		padding-bottom: 1.6rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-top:64px"],
+	body.lac-fse-lms [style*="padding-top:48px"],
+	body.lac-fse-lms [style*="padding-top:40px"] {
+		padding-top: 1.25rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-bottom:64px"],
+	body.lac-fse-lms [style*="padding-bottom:48px"] {
+		padding-bottom: 1.25rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-left:32px"] {
+		padding-left: 1rem !important;
+	}
+
+	body.lac-fse-lms [style*="padding-right:32px"] {
+		padding-right: 1rem !important;
+	}
+
+	body.lac-fse-lms .lac-page-head,
+	body.lac-fse-lms .lac-course-hero {
+		padding: 1.25rem 0 1rem;
+	}
+
+	body.lac-fse-lms .lac-layout,
+	body.lac-fse-lms .lac-section {
+		padding-top: 1.1rem;
+		padding-bottom: 1.35rem;
+	}
+
+	body.lac-fse-lms .lac-summary {
+		padding: 0.9rem 1rem;
+	}
+
+	body.lac-fse-lms .lac-summary li {
+		padding: 0.3rem 0;
+	}
+
+	body.lac-fse-lms .lac-learning-path .wp-block-column {
+		padding: 0.9rem !important;
+	}
+}
+
+/* Narrow phones: drop the header CTA (it is in the overlay and on-page). */
+@media (max-width: 600px) {
+	body.lac-fse-lms header .wp-block-buttons {
+		display: none;
+	}
+
+	body.lac-fse-lms .wp-block-post-template.is-layout-grid,
+	body.lac-fse-lms .wp-block-post-template-is-layout-grid,
+	body.lac-fse-lms .lac-course-grid {
+		grid-template-columns: 1fr !important;
+	}
+
+	body.lac-fse-lms header .wp-block-site-logo {
+		max-width: min(148px, 62vw);
+	}
+}
+
+/* Small tablets: 3-up sections become a 2-column grid instead of a tall stack. */
+@media (min-width: 600px) and (max-width: 781px) {
+	body.lac-fse-lms main .wp-block-columns:has(> .wp-block-column:nth-child(3)) {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr;
+		align-items: stretch;
+	}
+
+	body.lac-fse-lms main .wp-block-columns:has(> .wp-block-column:nth-child(3)) > .wp-block-column {
+		flex-basis: auto !important;
+		width: auto !important;
+		max-width: none !important;
+		min-width: 0;
+	}
+}
+
+@media (max-width: 400px) {
+	body.lac-fse-lms header .wp-block-site-logo {
+		max-width: 128px;
+	}
+
+	body.lac-fse-lms header .wp-block-site-logo img {
+		max-height: 32px;
 	}
 }

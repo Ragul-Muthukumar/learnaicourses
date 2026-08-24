@@ -67,3 +67,17 @@ docker exec -i learnaicourses-mysql mysql -ulearnaicourses -plearnaicourses_pass
 ```
 
 Then copy `wp-config-example.php` to `wp-config.php` and start the site.
+
+## PayPal course purchases
+
+Paid courses show **Buy now**. Free courses show **Enroll free**.
+
+1. Copy `.env.example` to `.env`
+2. For local demo without credentials: `PAYPAL_MODE=mock`
+3. For real PayPal: set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, and `PAYPAL_MODE=sandbox`
+
+REST:
+- `POST /wp-json/lac-lms/v1/purchase` — mock/local checkout
+- `POST /wp-json/lac-lms/v1/paypal/create-order` — start PayPal order
+- `POST /wp-json/lac-lms/v1/paypal/capture-order` — capture and enroll
+
