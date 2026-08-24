@@ -1,4 +1,11 @@
 {
 	"$schema": "https://schemas.wp.org/wp/6.8/theme.json",
-	"version": 3
+	"version": 3,
+	"customTemplates": [
+		{
+			"name": "learning-path",
+			"title": "Learning Path",
+			"postTypes": [ "page" ]
+		}
+	]
 }

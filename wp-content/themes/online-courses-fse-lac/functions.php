@@ -34,6 +34,62 @@ function lac_fse_child_enqueue_assets() {
 add_action( 'wp_enqueue_scripts', 'lac_fse_child_enqueue_assets', 20 );
 
 /**
+ * Keep the public site name on Learn AI Courses even if a demo title is restored.
+ *
+ * @param string $name Site title from options.
+ * @return string
+ */
+function lac_fse_branded_blogname( $name ) {
+	if ( 0 === strcasecmp( trim( (string) $name ), 'Online Courses' ) ) {
+		return 'Learn AI Courses';
+	}
+
+	return $name;
+}
+add_filter( 'option_blogname', 'lac_fse_branded_blogname' );
+
+/**
+ * Swap the parent “Online Courses” wordmark for the Learn AI Courses logo.
+ *
+ * Runs after the parent default-logo filter so the FSE site-logo block
+ * never falls back to fse-theme-logo.png.
+ *
+ * @param string $html Markup from get_custom_logo().
+ * @return string
+ */
+function lac_fse_branded_logo( $html ) {
+	// Honor a logo uploaded in the Site Editor / Customizer.
+	if ( get_theme_mod( 'custom_logo' ) ) {
+		return $html;
+	}
+
+	$logo_path = get_stylesheet_directory() . '/assets/images/lac-logo.png';
+	$logo_url  = get_stylesheet_directory_uri() . '/assets/images/lac-logo.png';
+
+	if ( ! is_readable( $logo_path ) ) {
+		return sprintf(
+			'<a href="%1$s" class="custom-logo-link site-title-fallback" rel="home">%2$s</a>',
+			esc_url( home_url( '/' ) ),
+			esc_html( get_bloginfo( 'name' ) )
+		);
+	}
+
+	$size = getimagesize( $logo_path );
+	$w    = ( is_array( $size ) && ! empty( $size[0] ) ) ? (int) $size[0] : 1074;
+	$h    = ( is_array( $size ) && ! empty( $size[1] ) ) ? (int) $size[1] : 156;
+
+	return sprintf(
+		'<a href="%1$s" class="custom-logo-link" rel="home" aria-label="%3$s"><img src="%2$s" class="custom-logo" alt="%3$s" width="%4$d" height="%5$d" /></a>',
+		esc_url( home_url( '/' ) ),
+		esc_url( $logo_url ),
+		esc_attr( get_bloginfo( 'name' ) ),
+		$w,
+		$h
+	);
+}
+add_filter( 'get_custom_logo', 'lac_fse_branded_logo', 20 );
+
+/**
  * Mark the body so LMS layout CSS can target this child.
  *
  * @param string[] $classes Body classes.
