@@ -40,6 +40,8 @@ add_action( 'wp_enqueue_scripts', 'lac_ee_child_enqueue_assets', 20 );
  * @return string[]
  */
 function lac_ee_child_body_class( $classes ) {
+	$classes[] = 'lac-ee-lms';
+	// Keep legacy class so existing LMS CSS selectors still apply.
 	$classes[] = 'lac-astra-lms';
 	return $classes;
 }
