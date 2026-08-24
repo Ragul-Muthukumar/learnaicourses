@@ -151,6 +151,31 @@ function lac_fse_fix_cta_buttons( $block_content, $block ) {
 add_filter( 'render_block_core/button', 'lac_fse_fix_cta_buttons', 10, 2 );
 
 /**
+ * Drop the leftover About Us CTA under the about section.
+ *
+ * The pattern already has an About Us label above the content, and this
+ * extra button has no destination.
+ *
+ * @param string $block_content Rendered buttons HTML.
+ * @param array  $block         Parsed block.
+ * @return string
+ */
+function lac_fse_remove_duplicate_about_us_button( $block_content, $block ) {
+	$inner_blocks = isset( $block['innerBlocks'] ) ? $block['innerBlocks'] : array();
+	if ( 1 !== count( $inner_blocks ) ) {
+		return $block_content;
+	}
+
+	$label = trim( wp_strip_all_tags( (string) ( $inner_blocks[0]['innerHTML'] ?? '' ) ) );
+	if ( 0 !== strcasecmp( $label, 'About Us' ) ) {
+		return $block_content;
+	}
+
+	return '';
+}
+add_filter( 'render_block_core/buttons', 'lac_fse_remove_duplicate_about_us_button', 10, 2 );
+
+/**
  * Homepage Query Loop of published LMS courses.
  *
  * @return void
