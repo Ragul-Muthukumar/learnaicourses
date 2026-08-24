@@ -53,3 +53,17 @@ docker compose up -d
 ```
 
 `wp-config.php` and `.env` are gitignored — do not commit secrets.
+
+
+## Media & database for other devices
+
+- Course/hero images are tracked under `wp-content/uploads/` so clones get the neon hero and course covers.
+- A SQL dump is available at `database/learnaicourses.sql`.
+
+Import database after `docker compose up -d`:
+
+```bash
+docker exec -i learnaicourses-mysql mysql -ulearnaicourses -plearnaicourses_pass < database/learnaicourses.sql
+```
+
+Then copy `wp-config-example.php` to `wp-config.php` and start the site.

@@ -4,7 +4,6 @@ wp-config.php
 wp-cli.phar
 router.php
 wp-content/debug.log
-wp-content/uploads/
 wp-content/cache/
 wp-content/upgrade/
 wp-content/backup-db/
@@ -12,3 +11,7 @@ wp-content/backup-db/
 .DS_Store
 *.swp
 *.swo
+
+# Keep media uploads tracked so hero/course images load on other devices.
+# Large future uploads can be moved to Git LFS if needed.
+!wp-content/uploads/
