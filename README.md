@@ -6,7 +6,7 @@ WordPress LMS product for practical AI courses.
 
 - WordPress in this folder (Apache DocumentRoot `/var/www/html`)
 - MySQL 8 via Docker Compose on host port `13306`
-- Theme: `learn-ai-courses`
+- Theme: `online-courses-fse-lac` (Online Courses FSE child — green storefront)
 - Plugin: `lac-lms` (courses, lessons, enrollment, REST)
 
 ## Quick start
