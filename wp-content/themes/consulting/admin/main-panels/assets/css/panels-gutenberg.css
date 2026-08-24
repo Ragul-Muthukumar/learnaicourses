@@ -1,0 +1,44 @@
+.thinkup-panel-upgrade-gutenberg {
+	background: #f3f3f3 !important;
+	border-bottom: 1px solid #dcdcde !important;
+	padding: 20px 16px !important;
+	box-shadow: none !important;
+}
+.thinkup-panel-upgrade-gutenberg .block-title {
+	font-weight: 600;
+	font-size: 14px;
+	text-transform: capitalize;
+	text-align: center;
+	margin-bottom: 8px;
+}
+.thinkup-panel-upgrade-gutenberg .block-text {
+	text-align: center;
+	line-height: 1.6;
+}
+.thinkup-panel-upgrade-gutenberg .block-link {
+	display: block;
+	width: 100%;
+	text-decoration: none;
+	text-align: center;
+	color: #fff;
+	background: #25ab6c !important;
+	padding: 10px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	-ms-border-radius: 3px;
+	-o-border-radius: 3px;
+	border-radius: 3px;
+	-webkit-transition: all 0.3s ease;
+	-moz-transition: all 0.3s ease;
+	-ms-transition: all 0.3s ease;
+	-o-transition: all 0.3s ease;
+	transition: all 0.3s ease;
+	-webkit-box-sizing: border-box !important;
+	-moz-box-sizing: border-box !important;
+	-ms-box-sizing: border-box !important;
+	-o-box-sizing: border-box !important;
+	box-sizing: border-box !important;
+}
+.thinkup-panel-upgrade-gutenberg > a:hover {
+	background: #1f945e !important;
+}

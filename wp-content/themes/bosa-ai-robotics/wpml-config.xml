@@ -1,0 +1,14 @@
+<wpml-config>
+    <admin-texts>
+        <key name="theme_mods_bosa-ai-robotics">
+            <key name="featured_pages_section_title" />
+            <key name="featured_pages_section_description" />
+            <key name="feature_posts_two_section_title" />
+            <key name="feature_posts_two_section_description" />
+            <key name="coupon_one_content" />
+            <key name="coupon_two_content" />
+            <key name="coupon_three_content" />
+            <key name="coupon_four_content" />
+        </key>
+    </admin-texts>
+</wpml-config>
