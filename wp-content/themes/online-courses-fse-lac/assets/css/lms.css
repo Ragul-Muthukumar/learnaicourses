@@ -280,8 +280,36 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	box-shadow: none;
 }
 
+.lac-enroll-button.is-purchase {
+	width: 100%;
+	max-width: 22rem;
+}
+
+.lac-paypal-wrap {
+	display: grid;
+	gap: 0.75rem;
+	width: 100%;
+	max-width: 22rem;
+}
+
+.lac-paypal-price {
+	margin: 0;
+	font-weight: 700;
+	color: var(--lac-ink, #1a1a1a);
+}
+
+.lac-enroll-hint {
+	margin: 0.5rem 0 0;
+	font-size: 0.85rem;
+	color: var(--lac-muted);
+}
+
 .lac-enroll-message {
 	color: var(--lac-muted);
+}
+
+.lac-enroll-message.is-error {
+	color: #b91c1c;
 }
 
 @media (max-width: 900px) {

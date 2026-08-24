@@ -177,7 +177,9 @@ function lac_fse_course_board_shortcode() {
 	$lac_lessons       = function_exists( 'lac_get_lessons_for_course' ) ? lac_get_lessons_for_course( $lac_course_id ) : array();
 	$lac_course_image  = get_the_post_thumbnail_url( $lac_course_id, 'large' );
 	$lac_lessons_count = is_array( $lac_lessons ) ? count( $lac_lessons ) : 0;
-	$lac_price_label   = ( floatval( $lac_course_price ) > 0 ) ? '$' . number_format( (float) $lac_course_price, 0 ) : 'Free';
+	$lac_price_label   = ( floatval( $lac_course_price ) > 0 )
+		? '$' . number_format( (float) $lac_course_price, 2 )
+		: 'Free';
 
 	ob_start();
 	?>
