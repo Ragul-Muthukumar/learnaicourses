@@ -3,7 +3,7 @@
  * Plugin Name: LAC LMS
  * Plugin URI:  http://localhost/learnaicourses
  * Description: Learn AI Courses LMS — courses, lessons, enrollment, PayPal checkout, and REST APIs.
- * Version:     1.3.0
+ * Version:     1.4.0
  * Author:      Learn AI Courses
  * Text Domain: lac-lms
  * Requires at least: 6.4
@@ -32,7 +32,7 @@ define( 'LAC_LMS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'LAC_LMS_URL', plugin_dir_url( __FILE__ ) );
 
  // Semantic version used for cache-busting enqueued assets.
-define( 'LAC_LMS_VERSION', '1.3.0' );
+define( 'LAC_LMS_VERSION', '1.4.0' );
 
  // Shared helpers: logging, id hashing, and response shaping.
 require_once LAC_LMS_PATH . 'includes/common.php';
@@ -51,6 +51,9 @@ require_once LAC_LMS_PATH . 'includes/cpt-course.php';
 
  // Lesson custom post type linked to parent courses.
 require_once LAC_LMS_PATH . 'includes/cpt-lesson.php';
+
+ // Detailed curricula, lesson HTML, and a one-time content refresh.
+require_once LAC_LMS_PATH . 'includes/curriculum.php';
 
  // PayPal Orders API helpers for paid course checkout.
 require_once LAC_LMS_PATH . 'includes/paypal.php';
@@ -93,7 +96,7 @@ function lac_lms_activate() {
 	 // Ensure the checkout page exists for enroll / purchase flows.
 	lac_ensure_checkout_page();
 	 // Persist the schema version for future upgrades.
-	update_option( 'lac_lms_db_version', '1.3.0' );
+	update_option( 'lac_lms_db_version', '1.3.1' );
 	 // Record a successful activation in the debug log.
 	lac_log_info( 'LAC LMS activated successfully.' );
 }
@@ -148,7 +151,7 @@ add_action( 'plugins_loaded', 'lac_lms_maybe_upgrade_schema' );
 function lac_lms_enqueue_assets() {
 	 // Detect whether the current request is the LMS checkout page.
 	$checkout_page_id = lac_get_checkout_page_id();
-	$is_checkout_page = $checkout_page_id > 0 && is_page( $checkout_page_id );
+	$is_checkout_page = is_page( 'checkout' ) || ( $checkout_page_id > 0 && is_page( $checkout_page_id ) );
 	 // Load LMS styles for course archives, single course views, and checkout.
 	if ( is_post_type_archive( 'lac_course' ) || is_singular( array( 'lac_course', 'lac_lesson' ) ) || is_front_page() || $is_checkout_page ) {
 		 // Register the LMS stylesheet with a version for cache busting.

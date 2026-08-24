@@ -97,6 +97,10 @@ add_filter( 'get_custom_logo', 'lac_fse_branded_logo', 20 );
  */
 function lac_fse_child_body_class( $classes ) {
 	$classes[] = 'lac-fse-lms';
+	$checkout_page_id = function_exists( 'lac_get_checkout_page_id' ) ? lac_get_checkout_page_id() : 0;
+	if ( is_page( 'checkout' ) || ( $checkout_page_id > 0 && is_page( $checkout_page_id ) ) ) {
+		$classes[] = 'lac-is-checkout';
+	}
 	return $classes;
 }
 add_filter( 'body_class', 'lac_fse_child_body_class' );
@@ -255,7 +259,9 @@ function lac_fse_course_board_shortcode() {
 	$lac_course_level  = get_post_meta( $lac_course_id, '_lac_course_level', true );
 	$lac_course_hours  = get_post_meta( $lac_course_id, '_lac_course_hours', true );
 	$lac_course_price  = get_post_meta( $lac_course_id, '_lac_course_price', true );
-	$lac_lessons       = function_exists( 'lac_get_lessons_for_course' ) ? lac_get_lessons_for_course( $lac_course_id ) : array();
+	$lac_lessons       = function_exists( 'lac_ensure_default_lessons_for_course' )
+		? lac_ensure_default_lessons_for_course( $lac_course_id )
+		: ( function_exists( 'lac_get_lessons_for_course' ) ? lac_get_lessons_for_course( $lac_course_id ) : array() );
 	$lac_course_image  = get_the_post_thumbnail_url( $lac_course_id, 'large' );
 	$lac_lessons_count = is_array( $lac_lessons ) ? count( $lac_lessons ) : 0;
 	$lac_price_label   = ( floatval( $lac_course_price ) > 0 )
@@ -293,13 +299,26 @@ function lac_fse_course_board_shortcode() {
 			<h2>About this course</h2>
 			<div class="entry-content"><?php echo apply_filters( 'the_content', get_post_field( 'post_content', $lac_course_id ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 			<h2>Curriculum</h2>
+			<p class="lac-curriculum-lede">Lessons are listed in order. Each one has a goal, a walkthrough, practice, and a short check before you continue.</p>
 			<?php if ( ! empty( $lac_lessons ) ) : ?>
 				<ol class="lac-lesson-list">
-					<?php foreach ( $lac_lessons as $lac_lesson ) : ?>
+					<?php foreach ( $lac_lessons as $lac_lesson_index => $lac_lesson ) : ?>
+						<?php
+						$lac_lesson_excerpt = trim( (string) $lac_lesson->post_excerpt );
+						if ( '' === $lac_lesson_excerpt ) {
+							$lac_lesson_excerpt = wp_trim_words( wp_strip_all_tags( (string) $lac_lesson->post_content ), 18 );
+						}
+						?>
 						<li>
 							<a href="<?php echo esc_url( get_permalink( $lac_lesson ) ); ?>">
-								<span><?php echo esc_html( get_the_title( $lac_lesson ) ); ?></span>
-								<span aria-hidden="true">→</span>
+								<span class="lac-lesson-list__index"><?php echo esc_html( str_pad( (string) ( $lac_lesson_index + 1 ), 2, '0', STR_PAD_LEFT ) ); ?></span>
+								<span class="lac-lesson-list__body">
+									<span class="lac-lesson-list__title"><?php echo esc_html( get_the_title( $lac_lesson ) ); ?></span>
+									<?php if ( '' !== $lac_lesson_excerpt ) : ?>
+										<span class="lac-lesson-list__excerpt"><?php echo esc_html( $lac_lesson_excerpt ); ?></span>
+									<?php endif; ?>
+								</span>
+								<span class="lac-lesson-list__go" aria-hidden="true">→</span>
 							</a>
 						</li>
 					<?php endforeach; ?>
@@ -341,6 +360,27 @@ function lac_fse_lesson_board_shortcode() {
 	}
 
 	$lac_parent_course_id = (int) get_post_meta( $lac_lesson_id, '_lac_parent_course_id', true );
+	$lac_siblings         = ( $lac_parent_course_id && function_exists( 'lac_get_lessons_for_course' ) )
+		? lac_get_lessons_for_course( $lac_parent_course_id )
+		: array();
+	$lac_lesson_number    = 0;
+	$lac_lesson_total     = is_array( $lac_siblings ) ? count( $lac_siblings ) : 0;
+	$lac_prev_lesson      = null;
+	$lac_next_lesson      = null;
+	if ( $lac_lesson_total > 0 ) {
+		foreach ( $lac_siblings as $lac_sibling_index => $lac_sibling ) {
+			if ( (int) $lac_sibling->ID === $lac_lesson_id ) {
+				$lac_lesson_number = $lac_sibling_index + 1;
+				if ( $lac_sibling_index > 0 ) {
+					$lac_prev_lesson = $lac_siblings[ $lac_sibling_index - 1 ];
+				}
+				if ( $lac_sibling_index + 1 < $lac_lesson_total ) {
+					$lac_next_lesson = $lac_siblings[ $lac_sibling_index + 1 ];
+				}
+				break;
+			}
+		}
+	}
 
 	ob_start();
 	?>
@@ -352,8 +392,29 @@ function lac_fse_lesson_board_shortcode() {
 				</a>
 			</p>
 		<?php endif; ?>
+		<?php if ( $lac_lesson_number > 0 ) : ?>
+			<p class="lac-lesson-progress">Lesson <?php echo esc_html( (string) $lac_lesson_number ); ?> of <?php echo esc_html( (string) $lac_lesson_total ); ?></p>
+		<?php endif; ?>
 		<h1><?php echo esc_html( get_the_title( $lac_lesson_id ) ); ?></h1>
 		<div class="entry-content"><?php echo apply_filters( 'the_content', get_post_field( 'post_content', $lac_lesson_id ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+		<?php if ( $lac_prev_lesson || $lac_next_lesson ) : ?>
+			<nav class="lac-lesson-nav" aria-label="Lesson">
+				<?php if ( $lac_prev_lesson ) : ?>
+					<a class="lac-lesson-nav__link" href="<?php echo esc_url( get_permalink( $lac_prev_lesson ) ); ?>">
+						<span class="lac-lesson-nav__dir">Previous</span>
+						<span class="lac-lesson-nav__title"><?php echo esc_html( get_the_title( $lac_prev_lesson ) ); ?></span>
+					</a>
+				<?php else : ?>
+					<span class="lac-lesson-nav__link is-empty"></span>
+				<?php endif; ?>
+				<?php if ( $lac_next_lesson ) : ?>
+					<a class="lac-lesson-nav__link is-next" href="<?php echo esc_url( get_permalink( $lac_next_lesson ) ); ?>">
+						<span class="lac-lesson-nav__dir">Next</span>
+						<span class="lac-lesson-nav__title"><?php echo esc_html( get_the_title( $lac_next_lesson ) ); ?></span>
+					</a>
+				<?php endif; ?>
+			</nav>
+		<?php endif; ?>
 	</div>
 	<?php
 	return (string) ob_get_clean();

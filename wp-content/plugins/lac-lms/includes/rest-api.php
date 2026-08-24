@@ -100,6 +100,25 @@ function lac_rest_require_login() {
 }
 
 /**
+ * Build the shared enrollment success payload, including the learning URL.
+ *
+ * @param int    $course_id Course post id.
+ * @param string $status    Machine status such as enrolled or already_enrolled.
+ * @param string $message   Learner-facing confirmation.
+ * @return array REST payload with encrypted id and continue URL.
+ */
+function lac_rest_enrollment_payload( $course_id, $status, $message ) {
+	return array(
+		'status'       => $status,
+		'message'      => $message,
+		'course_id'    => lac_encrypt_id( (int) $course_id ),
+		'continue_url' => function_exists( 'lac_get_continue_learning_url' )
+			? lac_get_continue_learning_url( (int) $course_id )
+			: (string) get_permalink( (int) $course_id ),
+	);
+}
+
+/**
  * GET /courses — list published courses with encrypted ids.
  *
  * @return WP_REST_Response Course collection response.
@@ -155,9 +174,10 @@ function lac_rest_enroll( WP_REST_Request $request ) {
 	 // Short-circuit when already enrolled.
 	if ( lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
 		return rest_ensure_response(
-			array(
-				'status'  => 'already_enrolled',
-				'message' => 'You are already enrolled in this course.',
+			lac_rest_enrollment_payload(
+				$validated['course_id'],
+				'already_enrolled',
+				'You are already enrolled in this course.'
 			)
 		);
 	}
@@ -171,10 +191,10 @@ function lac_rest_enroll( WP_REST_Request $request ) {
 	lac_log_info( 'Enrollment created with row id ' . absint( $insert_id ) );
 	 // Return a success payload with encrypted course id only.
 	return rest_ensure_response(
-		array(
-			'status'    => 'enrolled',
-			'message'   => 'Enrollment successful.',
-			'course_id' => lac_encrypt_id( $validated['course_id'] ),
+		lac_rest_enrollment_payload(
+			$validated['course_id'],
+			'enrolled',
+			'Enrollment successful.'
 		)
 	);
 }
@@ -200,9 +220,10 @@ function lac_rest_paypal_create_order( WP_REST_Request $request ) {
 	 // Skip checkout when the learner is already enrolled.
 	if ( lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
 		return rest_ensure_response(
-			array(
-				'status'  => 'already_enrolled',
-				'message' => 'You are already enrolled in this course.',
+			lac_rest_enrollment_payload(
+				$validated['course_id'],
+				'already_enrolled',
+				'You are already enrolled in this course.'
 			)
 		);
 	}
@@ -272,10 +293,10 @@ function lac_rest_paypal_capture_order( WP_REST_Request $request ) {
 			lac_db_insert_enrollment( $user_id, (int) $order_row->course_id );
 		}
 		return rest_ensure_response(
-			array(
-				'status'    => 'enrolled',
-				'message'   => 'Payment already completed. You are enrolled.',
-				'course_id' => lac_encrypt_id( (int) $order_row->course_id ),
+			lac_rest_enrollment_payload(
+				(int) $order_row->course_id,
+				'enrolled',
+				'Payment already completed. You are enrolled.'
 			)
 		);
 	}
@@ -300,10 +321,10 @@ function lac_rest_paypal_capture_order( WP_REST_Request $request ) {
 	lac_log_info( 'PayPal purchase completed for local order ' . absint( $order_row->id ) );
 	 // Return encrypted course id only.
 	return rest_ensure_response(
-		array(
-			'status'    => 'enrolled',
-			'message'   => 'Payment successful. You are now enrolled.',
-			'course_id' => lac_encrypt_id( (int) $order_row->course_id ),
+		lac_rest_enrollment_payload(
+			(int) $order_row->course_id,
+			'enrolled',
+			'Payment successful. You are now enrolled.'
 		)
 	);
 }
@@ -333,9 +354,10 @@ function lac_rest_purchase_course( WP_REST_Request $request ) {
 	 // Skip checkout when the learner is already enrolled.
 	if ( lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
 		return rest_ensure_response(
-			array(
-				'status'  => 'already_enrolled',
-				'message' => 'You are already enrolled in this course.',
+			lac_rest_enrollment_payload(
+				$validated['course_id'],
+				'already_enrolled',
+				'You are already enrolled in this course.'
 			)
 		);
 	}
@@ -363,10 +385,10 @@ function lac_rest_purchase_course( WP_REST_Request $request ) {
 	lac_log_info( 'Mock purchase completed for local order ' . absint( $local_order_id ) );
 	 // Return encrypted course id only.
 	return rest_ensure_response(
-		array(
-			'status'    => 'enrolled',
-			'message'   => 'Purchase successful. You are now enrolled.',
-			'course_id' => lac_encrypt_id( $validated['course_id'] ),
+		lac_rest_enrollment_payload(
+			$validated['course_id'],
+			'enrolled',
+			'Purchase successful. You are now enrolled.'
 		)
 	);
 }

@@ -153,7 +153,7 @@ add_action( 'save_post', 'lac_save_lesson_meta' );
  * @return WP_Post[] Lesson posts in menu order.
  */
 function lac_get_lessons_for_course( $course_id ) {
-	 // Query lessons filtered by parent course meta.
+	 // Query lessons by numeric parent-course meta so string/int storage still matches.
 	return get_posts(
 		array(
 			'post_type'      => 'lac_lesson',
@@ -161,8 +161,101 @@ function lac_get_lessons_for_course( $course_id ) {
 			'posts_per_page' => -1,
 			'orderby'        => 'menu_order',
 			'order'          => 'ASC',
-			'meta_key'       => '_lac_parent_course_id',
-			'meta_value'     => absint( $course_id ),
+			'meta_query'     => array(
+				array(
+					'key'     => '_lac_parent_course_id',
+					'value'   => absint( $course_id ),
+					'compare' => '=',
+					'type'    => 'NUMERIC',
+				),
+			),
 		)
 	);
+}
+
+/**
+ * Detailed lesson outline for a course (catalog + extras) or a title-only fallback.
+ *
+ * @param string $course_title Published course title.
+ * @param int    $course_id    Optional course post id for catalog lookup.
+ * @return array<int, array{title:string, content:string, excerpt?:string}> Lesson blueprints.
+ */
+function lac_default_lesson_blueprint( $course_title, $course_id = 0 ) {
+	if ( $course_id > 0 && function_exists( 'lac_get_curriculum_blueprint_for_course' ) ) {
+		$blueprint = lac_get_curriculum_blueprint_for_course( $course_id );
+		if ( ! empty( $blueprint ) ) {
+			return $blueprint;
+		}
+	}
+
+	$course_title = is_string( $course_title ) && '' !== $course_title ? $course_title : 'this course';
+	if ( function_exists( 'lac_curriculum_fallback_outline' ) && function_exists( 'lac_render_lesson_html' ) ) {
+		$outline = lac_curriculum_fallback_outline( $course_title, '' );
+		if ( function_exists( 'lac_curriculum_depth_extras' ) ) {
+			$outline = array_merge( $outline, lac_curriculum_depth_extras( $course_title, 'beginner' ) );
+		}
+		$total   = count( $outline );
+		$lessons = array();
+		foreach ( $outline as $index => $spec ) {
+			$lessons[] = array(
+				'title'   => (string) $spec['title'],
+				'excerpt' => (string) $spec['excerpt'],
+				'content' => lac_render_lesson_html( $spec, $course_title, $index + 1, $total ),
+			);
+		}
+		return $lessons;
+	}
+
+	return array();
+}
+
+/**
+ * Create the default curriculum when a published course has no lessons.
+ *
+ * Used by Continue Learning, checkout, and the course board so enrolled
+ * learners always have a real learning page to open.
+ *
+ * @param int $course_id Course post id.
+ * @return WP_Post[] Lessons after the ensure step (possibly newly created).
+ */
+function lac_ensure_default_lessons_for_course( $course_id ) {
+	$course_id = absint( $course_id );
+	if ( $course_id < 1 || 'lac_course' !== get_post_type( $course_id ) ) {
+		return array();
+	}
+
+	$existing_lessons = lac_get_lessons_for_course( $course_id );
+	if ( ! empty( $existing_lessons ) ) {
+		return $existing_lessons;
+	}
+
+	// Only published courses get a public curriculum.
+	if ( 'publish' !== get_post_status( $course_id ) ) {
+		return array();
+	}
+
+	if ( function_exists( 'lac_insert_curriculum_lessons_for_course' ) ) {
+		return lac_insert_curriculum_lessons_for_course( $course_id );
+	}
+
+	$course_title = get_the_title( $course_id );
+	foreach ( lac_default_lesson_blueprint( $course_title, $course_id ) as $lesson_index => $lesson ) {
+		$lesson_id = wp_insert_post(
+			array(
+				'post_type'    => 'lac_lesson',
+				'post_status'  => 'publish',
+				'post_title'   => $lesson['title'],
+				'post_excerpt' => isset( $lesson['excerpt'] ) ? $lesson['excerpt'] : '',
+				'post_content' => $lesson['content'],
+				'menu_order'   => $lesson_index + 1,
+			)
+		);
+		if ( ! is_wp_error( $lesson_id ) && $lesson_id ) {
+			update_post_meta( $lesson_id, '_lac_parent_course_id', $course_id );
+		}
+	}
+
+	lac_log_info( 'Created default lessons for course ' . $course_id );
+
+	return lac_get_lessons_for_course( $course_id );
 }
