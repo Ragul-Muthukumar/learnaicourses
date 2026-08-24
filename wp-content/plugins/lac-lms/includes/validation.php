@@ -92,3 +92,50 @@ function lac_validate_course_meta( $course_level, $course_hours, $course_price )
 		'course_price' => $safe_price,
 	);
 }
+
+/**
+ * Validate a PayPal create-order request payload.
+ *
+ * @param array $request_data Raw associative request body.
+ * @return array|WP_Error Sanitized data or error object.
+ */
+function lac_validate_paypal_create_request( $request_data ) {
+	 // Reuse enrollment validation to resolve the encrypted course id.
+	$base = lac_validate_enrollment_request( $request_data );
+	 // Bubble course-id validation errors unchanged.
+	if ( is_wp_error( $base ) ) {
+		return $base;
+	}
+	 // Require a positive price so free courses use the enroll endpoint.
+	$course_price = lac_get_course_price( $base['course_id'] );
+	if ( $course_price <= 0 ) {
+		return new WP_Error( 'course_is_free', 'This course is free — use enroll instead.', array( 'status' => 400 ) );
+	}
+	 // Attach the resolved price for the order insert.
+	$base['course_price'] = $course_price;
+	 // Hand the clean payload back to the REST controller.
+	return $base;
+}
+
+/**
+ * Validate a PayPal capture-order request payload.
+ *
+ * @param array $request_data Raw associative request body.
+ * @return array|WP_Error Sanitized data or error object.
+ */
+function lac_validate_paypal_capture_request( $request_data ) {
+	 // Ensure the payload is an array before reading keys.
+	if ( ! is_array( $request_data ) ) {
+		return new WP_Error( 'invalid_payload', 'Capture payload must be an object.', array( 'status' => 400 ) );
+	}
+	 // Require the PayPal order id returned by create-order.
+	$paypal_order_id = isset( $request_data['paypal_order_id'] ) ? sanitize_text_field( $request_data['paypal_order_id'] ) : '';
+	 // Reject empty PayPal order identifiers immediately.
+	if ( '' === $paypal_order_id ) {
+		return new WP_Error( 'missing_paypal_order_id', 'paypal_order_id is required.', array( 'status' => 400 ) );
+	}
+	 // Return only the sanitized PayPal order id.
+	return array(
+		'paypal_order_id' => $paypal_order_id,
+	);
+}
