@@ -23,22 +23,32 @@
 	<div class="site-header__inner">
 		<a class="site-brand" href="<?php echo esc_url( home_url( '/' ) ); ?>">
 			<span class="site-brand__mark" aria-hidden="true"></span>
-			<span class="site-brand__name"><?php bloginfo( 'name' ); ?></span>
+			<span class="site-brand__meta">
+				<span class="site-brand__eyebrow">AI Learning Platform</span>
+				<span class="site-brand__name"><?php bloginfo( 'name' ); ?></span>
+			</span>
 		</a>
 		<button class="site-nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
 			<span class="site-nav-toggle__label">Menu</span>
 		</button>
-		<nav id="site-nav" class="site-nav" data-site-nav>
-			<?php
-			wp_nav_menu(
-				array(
-					'theme_location' => 'primary',
-					'container'      => false,
-					'menu_class'     => 'site-nav__list',
-					'fallback_cb'    => 'lac_theme_fallback_menu',
-				)
-			);
-			?>
-		</nav>
+		<div class="site-header__actions">
+			<nav id="site-nav" class="site-nav" data-site-nav>
+				<?php
+				wp_nav_menu(
+					array(
+						'theme_location' => 'primary',
+						'container'      => false,
+						'menu_class'     => 'site-nav__list',
+						'fallback_cb'    => 'lac_theme_fallback_menu',
+					)
+				);
+				?>
+			</nav>
+			<?php if ( is_user_logged_in() ) : ?>
+				<a class="button button--nav" href="<?php echo esc_url( admin_url() ); ?>">Dashboard</a>
+			<?php else : ?>
+				<a class="button button--nav" href="<?php echo esc_url( wp_login_url( home_url( '/' ) ) ); ?>">Sign in</a>
+			<?php endif; ?>
+		</div>
 	</div>
 </header>

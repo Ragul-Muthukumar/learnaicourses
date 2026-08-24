@@ -57,6 +57,12 @@ require_once LAC_LMS_PATH . 'includes/rest-api.php';
  // One-time demo content seeder for local development.
 require_once LAC_LMS_PATH . 'includes/seed.php';
 
+ // Purchasable AI course batch seeder ($1–$50).
+require_once LAC_LMS_PATH . 'includes/seed-purchase-courses.php';
+
+ // Featured image seeder for course posts.
+require_once LAC_LMS_PATH . 'includes/seed-course-images.php';
+
 /**
  * Runs on plugin activation: tables, rewrite flush, optional seed.
  *
