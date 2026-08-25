@@ -430,3 +430,135 @@ function lac_fse_child_on_switch() {
 	flush_rewrite_rules();
 }
 add_action( 'after_switch_theme', 'lac_fse_child_on_switch' );
+
+/**
+ * Absolute URI for a child-theme favicon file, cache-busted with the theme version.
+ *
+ * @param string $filename File inside assets/images/favicon/.
+ * @return string
+ */
+function lac_fse_favicon_asset_url( $filename ) {
+	$version = (string) wp_get_theme()->get( 'Version' );
+
+	return add_query_arg(
+		'ver',
+		$version,
+		get_stylesheet_directory_uri() . '/assets/images/favicon/' . ltrim( $filename, '/' )
+	);
+}
+
+/**
+ * Favicon / touch-icon markup for desktop tabs, bookmarks, and mobile home screens.
+ *
+ * Uses the graduation-cap cropped from lac-logo.png. Query-string versions
+ * avoid stale browser cache after the icon set changes.
+ *
+ * @return string[]
+ */
+function lac_fse_favicon_meta_tags() {
+	$ico    = lac_fse_favicon_asset_url( 'favicon.ico' );
+	$png16  = lac_fse_favicon_asset_url( 'favicon-16x16.png' );
+	$png32  = lac_fse_favicon_asset_url( 'favicon-32x32.png' );
+	$png192 = lac_fse_favicon_asset_url( 'android-chrome-192x192.png' );
+	$apple  = lac_fse_favicon_asset_url( 'apple-touch-icon.png' );
+	$manifest = lac_fse_favicon_asset_url( 'site.webmanifest' );
+
+	return array(
+		sprintf( '<link rel="icon" href="%s" sizes="any" />', esc_url( $ico ) ),
+		sprintf( '<link rel="icon" type="image/png" href="%s" sizes="16x16" />', esc_url( $png16 ) ),
+		sprintf( '<link rel="icon" type="image/png" href="%s" sizes="32x32" />', esc_url( $png32 ) ),
+		sprintf( '<link rel="icon" type="image/png" href="%s" sizes="192x192" />', esc_url( $png192 ) ),
+		sprintf( '<link rel="apple-touch-icon" href="%s" sizes="180x180" />', esc_url( $apple ) ),
+		sprintf( '<meta name="msapplication-TileImage" content="%s" />', esc_url( $png192 ) ),
+		sprintf( '<link rel="manifest" href="%s" />', esc_url( $manifest ) ),
+	);
+}
+
+/**
+ * Print favicon tags when WordPress is not already outputting a Site Icon.
+ *
+ * @return void
+ */
+function lac_fse_output_favicon_fallback() {
+	// wp_site_icon() already prints these when the Site Icon option is set.
+	if ( has_site_icon() ) {
+		return;
+	}
+
+	echo implode( "\n", lac_fse_favicon_meta_tags() ) . "\n";
+}
+add_action( 'wp_head', 'lac_fse_output_favicon_fallback', 1 );
+add_action( 'login_head', 'lac_fse_output_favicon_fallback', 1 );
+
+/**
+ * Always print favicon tags in wp-admin (core does not hook wp_site_icon there).
+ *
+ * @return void
+ */
+function lac_fse_output_admin_favicon() {
+	echo implode( "\n", lac_fse_favicon_meta_tags() ) . "\n";
+}
+add_action( 'admin_head', 'lac_fse_output_admin_favicon', 1 );
+
+/**
+ * Prefer the theme favicon files over auto-cropped media-library sizes.
+ *
+ * WordPress Site Icon apple-touch images keep transparency, which iOS fills
+ * with black. The theme 180px file uses a white background for home screens.
+ *
+ * @param string[] $meta_tags Core Site Icon tags.
+ * @return string[]
+ */
+function lac_fse_filter_site_icon_meta_tags( $meta_tags ) {
+	unset( $meta_tags );
+
+	return lac_fse_favicon_meta_tags();
+}
+add_filter( 'site_icon_meta_tags', 'lac_fse_filter_site_icon_meta_tags' );
+
+/**
+ * Register the 512px brand icon as the WordPress Site Icon when none is set.
+ *
+ * Leaves an existing custom Site Icon alone so operators can replace it later.
+ *
+ * @return void
+ */
+function lac_fse_ensure_site_icon() {
+	$current_id = (int) get_option( 'site_icon' );
+	if ( $current_id > 0 && wp_attachment_is_image( $current_id ) ) {
+		return;
+	}
+
+	$source = get_stylesheet_directory() . '/assets/images/favicon/site-icon-512.png';
+	if ( ! is_readable( $source ) ) {
+		return;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+
+	$upload = wp_upload_bits( 'lac-site-icon-512.png', null, (string) file_get_contents( $source ) );
+	if ( ! empty( $upload['error'] ) || empty( $upload['file'] ) ) {
+		return;
+	}
+
+	$attachment_id = wp_insert_attachment(
+		array(
+			'post_mime_type' => 'image/png',
+			'post_title'     => 'Learn AI Courses site icon',
+			'post_content'   => '',
+			'post_status'    => 'inherit',
+		),
+		$upload['file']
+	);
+	if ( is_wp_error( $attachment_id ) || $attachment_id < 1 ) {
+		return;
+	}
+
+	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+	update_post_meta( $attachment_id, '_wp_attachment_image_alt', 'Learn AI Courses' );
+	update_option( 'site_icon', (int) $attachment_id );
+}
+add_action( 'init', 'lac_fse_ensure_site_icon', 20 );
