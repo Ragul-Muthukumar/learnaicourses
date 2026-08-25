@@ -111,23 +111,27 @@
 	padding: 0;
 }
 
-/* Individual lesson row */
+/* wpautop can insert <br> inside lesson links; never let them become extra rows. */
+.lac-lesson-list br {
+	display: none !important;
+}
+
+/* Compact lesson row: index, copy, arrow */
 .lac-lesson-list li a {
 	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	align-items: start;
-	gap: 0.9rem 1rem;
-	padding: 1rem 1.15rem;
+	grid-template-columns: 2rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.15rem 0.75rem;
+	padding: 0.7rem 1rem;
 	text-decoration: none;
 	color: #0f172a;
-	background: #fff;
-	border: 1px solid rgba(15, 23, 42, 0.08);
-	transition: border-color 160ms ease, background 160ms ease;
+	background: transparent;
+	border: 0;
+	transition: background 160ms ease;
 }
 
 /* Subtle hover for lesson rows */
 .lac-lesson-list li a:hover {
-	border-color: rgba(16, 185, 129, 0.45);
 	background: rgba(16, 185, 129, 0.06);
 }
 
