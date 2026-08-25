@@ -3,7 +3,7 @@
  * Plugin Name: LAC LMS
  * Plugin URI:  http://localhost/learnaicourses
  * Description: Learn AI Courses LMS — courses, lessons, enrollment, PayPal checkout, and REST APIs.
- * Version:     1.4.1
+ * Version:     1.4.2
  * Author:      Learn AI Courses
  * Text Domain: lac-lms
  * Requires at least: 6.4
@@ -32,7 +32,7 @@ define( 'LAC_LMS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'LAC_LMS_URL', plugin_dir_url( __FILE__ ) );
 
  // Semantic version used for cache-busting enqueued assets.
-define( 'LAC_LMS_VERSION', '1.4.1' );
+define( 'LAC_LMS_VERSION', '1.4.2' );
 
  // Shared helpers: logging, id hashing, and response shaping.
 require_once LAC_LMS_PATH . 'includes/common.php';
@@ -97,6 +97,8 @@ function lac_lms_activate() {
 	lac_ensure_checkout_page();
 	 // Persist the schema version for future upgrades.
 	update_option( 'lac_lms_db_version', '1.3.1' );
+	 // Mark rewrite rules as current for this plugin version.
+	update_option( 'lac_rewrite_version', LAC_LMS_VERSION, true );
 	 // Record a successful activation in the debug log.
 	lac_log_info( 'LAC LMS activated successfully.' );
 }
@@ -142,6 +144,61 @@ function lac_lms_maybe_upgrade_schema() {
 
  // Run schema upgrades early on every request until current.
 add_action( 'plugins_loaded', 'lac_lms_maybe_upgrade_schema' );
+
+/**
+ * Flush rewrite rules once per plugin version so /courses/ works after deploy.
+ *
+ * Hostinger / fresh installs often activate the theme first; without this,
+ * the lac_course archive stays 404 until Permalinks are saved manually.
+ *
+ * @return void
+ */
+function lac_lms_maybe_flush_rewrites() {
+	 // Skip when this version already flushed rules successfully.
+	if ( get_option( 'lac_rewrite_version' ) === LAC_LMS_VERSION ) {
+		return;
+	}
+	 // Re-register CPTs before flushing so their slugs are in the rules map.
+	lac_register_course_post_type();
+	lac_register_lesson_post_type();
+	 // Soft flush rebuilds rules without deleting the option prematurely.
+	flush_rewrite_rules( false );
+	 // Ensure the checkout page exists after a file-only deploy.
+	if ( function_exists( 'lac_ensure_checkout_page' ) ) {
+		lac_ensure_checkout_page();
+	}
+	 // Persist the version marker so we only flush once per release.
+	update_option( 'lac_rewrite_version', LAC_LMS_VERSION, true );
+	lac_log_info( 'LAC LMS rewrite rules flushed for version ' . LAC_LMS_VERSION );
+}
+
+ // Run late on init so CPT registration callbacks have already fired.
+add_action( 'init', 'lac_lms_maybe_flush_rewrites', 99 );
+
+/**
+ * Show an admin warning when Courses CPT has zero published posts.
+ *
+ * @return void
+ */
+function lac_lms_admin_missing_courses_notice() {
+	 // Only show to users who can manage plugins / content.
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	 // Count published LMS courses in the active database.
+	$course_count = (int) wp_count_posts( 'lac_course' )->publish;
+	 // Exit when at least one course exists.
+	if ( $course_count > 0 ) {
+		return;
+	}
+	 // Explain the empty catalog and the usual Hostinger import mistake.
+	echo '<div class="notice notice-error"><p>';
+	echo esc_html( 'LAC LMS is active but no courses were found. Import database/learnaicourses.sql (matching your table prefix in wp-config.php), or create courses under Courses in the admin. Until then /courses/ will be empty or 404.' );
+	echo '</p></div>';
+}
+
+ // Surface the empty-catalog warning on every admin screen.
+add_action( 'admin_notices', 'lac_lms_admin_missing_courses_notice' );
 
 /**
  * Enqueue front-end LMS assets on relevant course templates.
