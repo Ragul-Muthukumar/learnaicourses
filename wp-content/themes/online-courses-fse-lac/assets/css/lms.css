@@ -222,27 +222,153 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	font-size: 0.92rem;
 }
 
+.lac-curriculum-lede {
+	margin: 0 0 1.1rem;
+	color: var(--lac-muted);
+	font-size: 0.98rem;
+	line-height: 1.5;
+	max-width: 40rem;
+}
+
 .lac-lesson-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	border: 1px solid var(--lac-line);
+	border-radius: 16px;
+	overflow: hidden;
+	background: #fff;
 }
 
 .lac-lesson-list li {
 	border-top: 1px solid var(--lac-line);
 }
 
+.lac-lesson-list li:first-child {
+	border-top: 0;
+}
+
 .lac-lesson-list a {
-	display: flex;
-	justify-content: space-between;
-	gap: 1rem;
-	padding: 0.8rem 0;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: start;
+	gap: 0.9rem 1rem;
+	padding: 1rem 1.15rem;
 	text-decoration: none;
 	color: var(--lac-heading);
 }
 
 .lac-lesson-list a:hover {
+	color: var(--lac-heading);
+	background: rgba(16, 185, 129, 0.06);
+}
+
+.lac-lesson-list__index {
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
 	color: var(--lac-primary);
+	padding-top: 0.2rem;
+}
+
+.lac-lesson-list__body {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.lac-lesson-list__title {
+	font-weight: 650;
+	line-height: 1.35;
+}
+
+.lac-lesson-list__excerpt {
+	color: var(--lac-muted);
+	font-size: 0.92rem;
+	line-height: 1.45;
+}
+
+.lac-lesson-list__go {
+	color: var(--lac-primary);
+	padding-top: 0.15rem;
+}
+
+.lac-lesson-progress {
+	margin: 0 0 0.5rem;
+	color: var(--lac-primary);
+	font-size: 0.82rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.lac-lesson .entry-content h2 {
+	margin: 1.6rem 0 0.55rem;
+	font-size: 1.15rem;
+}
+
+.lac-lesson .entry-content ul {
+	margin: 0 0 1rem;
+	padding-left: 1.2rem;
+}
+
+.lac-lesson .lac-lesson-kicker,
+.lac-lesson .lac-lesson-goal {
+	margin: 0 0 1rem;
+}
+
+.lac-lesson .lac-lesson-kicker {
+	color: var(--lac-muted);
+	font-size: 0.92rem;
+}
+
+.lac-lesson-nav {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.75rem;
+	margin: 2rem 0 0;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--lac-line);
+}
+
+.lac-lesson-nav__link {
+	display: grid;
+	gap: 0.2rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--lac-line);
+	border-radius: 12px;
+	text-decoration: none;
+	color: var(--lac-heading);
+	background: #fff;
+	min-height: 4.5rem;
+}
+
+.lac-lesson-nav__link.is-empty {
+	border: 0;
+	background: transparent;
+	min-height: 0;
+}
+
+.lac-lesson-nav__link.is-next {
+	text-align: right;
+}
+
+.lac-lesson-nav__link:hover {
+	border-color: var(--lac-primary);
+	color: var(--lac-heading);
+}
+
+.lac-lesson-nav__dir {
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--lac-primary);
+}
+
+.lac-lesson-nav__title {
+	font-weight: 600;
+	line-height: 1.35;
 }
 
 .lac-crumb {
@@ -252,6 +378,72 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 .lac-crumb a {
 	color: var(--lac-muted);
 	text-decoration: none;
+}
+
+/* Checkout uses the same canvas, cards, and green accents as course pages. */
+body.lac-fse-lms .lac-checkout {
+	padding: 2.5rem 0 3rem;
+	background: var(--wp--preset--color--background-4, #f1f9f6);
+}
+
+body.lac-fse-lms .lac-checkout__grid {
+	width: min(1320px, calc(100% - 2.5rem));
+	max-width: none;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.7fr);
+	gap: 1.5rem;
+	align-items: start;
+}
+
+body.lac-fse-lms .lac-checkout__summary,
+body.lac-fse-lms .lac-checkout__panel {
+	background: var(--lac-card);
+	border: 1px solid var(--lac-line);
+	border-radius: 16px;
+	box-shadow: none;
+	padding: 1.5rem;
+}
+
+body.lac-fse-lms .lac-checkout__eyebrow {
+	color: var(--lac-primary);
+}
+
+body.lac-fse-lms .lac-checkout__title {
+	color: var(--lac-heading);
+	font-size: clamp(1.85rem, 3vw, 2.55rem);
+	font-weight: 800;
+}
+
+body.lac-fse-lms .lac-checkout__excerpt {
+	color: var(--lac-muted);
+}
+
+body.lac-fse-lms .lac-checkout__meta li {
+	background: var(--wp--preset--color--background-3, #e8f6ef);
+	color: var(--lac-ink);
+}
+
+body.lac-fse-lms .lac-checkout__back {
+	color: var(--lac-primary);
+}
+
+body.lac-fse-lms .lac-checkout__image {
+	border-radius: 12px;
+}
+
+body.lac-fse-lms .lac-checkout__total-label {
+	color: var(--lac-muted);
+}
+
+body.lac-fse-lms .lac-checkout__total {
+	color: var(--lac-heading);
+}
+
+body.lac-fse-lms .lac-checkout--empty {
+	width: min(1320px, calc(100% - 2.5rem));
+	margin: 0 auto;
+	padding: 2.5rem 0;
 }
 
 .lac-pagination {
@@ -269,36 +461,87 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	text-decoration: none;
 }
 
-/* Plugin enroll button: match FSE pill buttons. */
-.lac-enroll-button {
+/* Enroll CTA: same pill as header “Browse courses” (20px/32px, auto height, centered label). */
+body.lac-fse-lms a.lac-enroll-button,
+body.lac-fse-lms button.lac-enroll-button,
+body.lac-fse-lms .lac-enroll-button {
 	appearance: none;
+	-webkit-appearance: none;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	box-sizing: border-box;
+	width: auto;
+	max-width: 100%;
+	height: auto !important;
+	min-height: 0 !important;
+	margin: 0;
 	border: 0;
+	border-radius: 50px;
+	padding: 20px 32px !important;
 	background: var(--lac-primary);
 	color: #fff;
-	border-radius: 50px;
-	padding: 0.75rem 1.35rem;
-	font-weight: 600;
 	box-shadow: none;
 	transform: none;
 	cursor: pointer;
+	font-family: var(--wp--preset--font-family--manrope, inherit);
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1 !important;
+	letter-spacing: 0;
+	text-align: center;
+	text-decoration: none;
+	white-space: nowrap;
+	vertical-align: middle;
 }
 
-.lac-enroll-button:hover,
-.lac-enroll-button:focus {
+/* Inner label is a single flex child so leftover whitespace cannot shift the text. */
+body.lac-fse-lms .lac-enroll-button__label {
+	display: block;
+	line-height: 1;
+	margin: 0;
+	padding: 0;
+	/* Trim Manrope’s unused em-box space so the glyphs sit in the middle of the pill. */
+	text-box: trim-both cap alphabetic;
+	text-box-trim: trim-both;
+	text-box-edge: cap alphabetic;
+}
+
+/* Older browsers: nudge Manrope glyphs down so they look centered in the pill. */
+@supports not (text-box-trim: trim-both) {
+	body.lac-fse-lms .lac-enroll-button__label {
+		transform: translateY(2px);
+	}
+}
+
+body.lac-fse-lms .lac-enroll-button:hover,
+body.lac-fse-lms .lac-enroll-button:focus {
 	background: var(--lac-primary-hover);
 	transform: none;
 	box-shadow: none;
 	color: #fff;
 }
 
-.lac-enroll-button.is-enrolled {
+body.lac-fse-lms .lac-enroll-button.is-enrolled {
 	background: #fff;
 	color: var(--lac-primary);
 	border: 2px solid var(--lac-primary);
 	box-shadow: none;
 }
 
-.lac-enroll-button.is-purchase {
+body.lac-fse-lms .lac-enroll-button.is-purchase {
+	background: var(--lac-primary);
+	box-shadow: none;
+}
+
+body.lac-fse-lms .lac-enroll-button.is-purchase:hover,
+body.lac-fse-lms .lac-enroll-button.is-purchase:focus {
+	background: var(--lac-primary-hover);
+}
+
+/* Stretch only inside the summary card and checkout panel, not the hero. */
+body.lac-fse-lms .lac-summary .lac-enroll-button,
+body.lac-fse-lms .lac-checkout .lac-enroll-button {
 	width: 100%;
 	max-width: 22rem;
 }
@@ -333,7 +576,8 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 @media (max-width: 900px) {
 	.lac-course-grid,
 	.lac-course-hero__grid,
-	.lac-layout {
+	.lac-layout,
+	.lac-checkout__grid {
 		grid-template-columns: 1fr;
 	}
 
@@ -600,8 +844,7 @@ body.lac-fse-lms video {
 		box-sizing: border-box;
 	}
 
-	body.lac-fse-lms main .wp-block-button__link,
-	body.lac-fse-lms .lac-enroll-button {
+	body.lac-fse-lms main .wp-block-button__link {
 		min-height: 44px;
 		padding-top: 11px !important;
 		padding-bottom: 11px !important;
@@ -610,10 +853,17 @@ body.lac-fse-lms video {
 	}
 
 	body.lac-fse-lms .lac-enroll-button {
+		height: auto !important;
+		min-height: 0 !important;
+		padding: 14px 24px !important;
+		font-size: 16px !important;
+		white-space: nowrap;
 		width: 100%;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
+		max-width: 100%;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		line-height: 1 !important;
 	}
 
 	/* Feature tiles and about-us text cards. */
@@ -700,10 +950,21 @@ body.lac-fse-lms video {
 	}
 
 	body.lac-fse-lms .lac-lesson-list a {
-		flex-wrap: wrap;
-		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.65rem 0;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 0.65rem 0.8rem;
+		padding: 0.85rem 0.9rem;
+	}
+
+	body.lac-fse-lms .lac-lesson-list__go {
+		display: none;
+	}
+
+	body.lac-fse-lms .lac-lesson-nav {
+		grid-template-columns: 1fr;
+	}
+
+	body.lac-fse-lms .lac-lesson-nav__link.is-next {
+		text-align: left;
 	}
 
 	/* Footer: logo full width, then two link columns. */
@@ -797,7 +1058,8 @@ body.lac-fse-lms video {
 	}
 
 	body.lac-fse-lms .lac-page-head,
-	body.lac-fse-lms .lac-course-hero {
+	body.lac-fse-lms .lac-course-hero,
+	body.lac-fse-lms .lac-checkout {
 		padding: 1.25rem 0 1rem;
 	}
 
@@ -830,6 +1092,10 @@ body.lac-fse-lms video {
 	body.lac-fse-lms .wp-block-post-template-is-layout-grid,
 	body.lac-fse-lms .lac-course-grid {
 		grid-template-columns: 1fr !important;
+	}
+
+	body.lac-fse-lms .lac-checkout__grid {
+		width: min(1320px, calc(100% - 1.5rem));
 	}
 
 	body.lac-fse-lms header .wp-block-site-logo {

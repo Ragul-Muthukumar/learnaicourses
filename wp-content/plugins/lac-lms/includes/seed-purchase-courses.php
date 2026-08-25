@@ -166,6 +166,11 @@ function lac_seed_purchase_courses_if_needed() {
 		update_post_meta( $course_id, '_lac_course_level', lac_get_level_for_price( $price_tier ) );
 		update_post_meta( $course_id, '_lac_course_hours', lac_get_hours_for_price( $price_tier ) );
 
+		// Attach a default curriculum so Continue Learning has a real destination.
+		if ( function_exists( 'lac_ensure_default_lessons_for_course' ) ) {
+			lac_ensure_default_lessons_for_course( $course_id );
+		}
+
 		// Increment the success counter.
 		$created_count++;
 	}
@@ -180,3 +185,46 @@ function lac_seed_purchase_courses_if_needed() {
 		'skipped' => false,
 	);
 }
+
+/**
+ * Backfill a default curriculum for published courses that have no lessons.
+ *
+ * The original purchase-course seed created priced posts without lessons, so
+ * Continue Learning fell back to the course permalink and appeared to reload.
+ *
+ * @return void
+ */
+function lac_backfill_missing_course_lessons() {
+	if ( get_option( 'lac_course_lessons_backfilled' ) ) {
+		return;
+	}
+
+	// Avoid overlapping inserts if two requests hit init at the same time.
+	if ( get_transient( 'lac_backfilling_lessons' ) ) {
+		return;
+	}
+	set_transient( 'lac_backfilling_lessons', 1, 120 );
+
+	if ( ! function_exists( 'lac_ensure_default_lessons_for_course' ) ) {
+		delete_transient( 'lac_backfilling_lessons' );
+		return;
+	}
+
+	$course_ids = get_posts(
+		array(
+			'post_type'      => 'lac_course',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+
+	foreach ( $course_ids as $course_id ) {
+		lac_ensure_default_lessons_for_course( (int) $course_id );
+	}
+
+	update_option( 'lac_course_lessons_backfilled', 1 );
+	delete_transient( 'lac_backfilling_lessons' );
+	lac_log_info( 'Backfilled default lessons for courses missing a curriculum.' );
+}
+add_action( 'init', 'lac_backfill_missing_course_lessons', 20 );

@@ -134,15 +134,25 @@ function lac_resolve_course_id_from_slug( $course_slug ) {
  * @return string Permalink to the first lesson or the course page.
  */
 function lac_get_continue_learning_url( $course_id ) {
-	 // Prefer the first lesson when the curriculum helper is available.
-	if ( function_exists( 'lac_get_lessons_for_course' ) ) {
-		$lesson_posts = lac_get_lessons_for_course( $course_id );
-		if ( ! empty( $lesson_posts ) ) {
-			return get_permalink( $lesson_posts[0] );
+	$course_id = absint( $course_id );
+	if ( $course_id < 1 ) {
+		return '';
+	}
+
+	// Create a default curriculum when the course was published without lessons.
+	$lesson_posts = function_exists( 'lac_ensure_default_lessons_for_course' )
+		? lac_ensure_default_lessons_for_course( $course_id )
+		: ( function_exists( 'lac_get_lessons_for_course' ) ? lac_get_lessons_for_course( $course_id ) : array() );
+
+	if ( ! empty( $lesson_posts ) ) {
+		$lesson_url = get_permalink( $lesson_posts[0] );
+		if ( is_string( $lesson_url ) && '' !== $lesson_url ) {
+			return $lesson_url;
 		}
 	}
-	 // Fall back to the course detail page when no lessons exist yet.
-	return get_permalink( $course_id );
+
+	// Last resort only: the course permalink (should be unused once lessons exist).
+	return (string) get_permalink( $course_id );
 }
 
 /**
@@ -161,22 +171,12 @@ function lac_render_checkout_actions( $course_id ) {
 	?>
 	<div class="lac-checkout__actions" data-lac-checkout-actions="1" data-continue_url="<?php echo esc_attr( lac_get_continue_learning_url( $course_id ) ); ?>">
 		<?php if ( ! is_user_logged_in() ) : ?>
-			<a
-				class="lac-enroll-button lac-enroll-link is-login"
-				href="<?php echo esc_url( wp_login_url( lac_get_checkout_url_for_course( $course_id ) ) ); ?>"
-			>
-				<?php echo esc_html( 'Sign in to continue' ); ?>
-			</a>
+			<a class="lac-enroll-button lac-enroll-link is-login" href="<?php echo esc_url( wp_login_url( lac_get_checkout_url_for_course( $course_id ) ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Sign in to continue' ); ?></span></a>
 			<p class="lac-enroll-hint">
 				<?php echo esc_html( 'You need an account before enrolling or purchasing a course.' ); ?>
 			</p>
 		<?php elseif ( lac_db_is_user_enrolled( get_current_user_id(), $course_id ) ) : ?>
-			<a
-				class="lac-enroll-button lac-enroll-link is-enrolled"
-				href="<?php echo esc_url( lac_get_continue_learning_url( $course_id ) ); ?>"
-			>
-				<?php echo esc_html( 'Continue learning' ); ?>
-			</a>
+			<a class="lac-enroll-button lac-enroll-link is-enrolled" href="<?php echo esc_url( lac_get_continue_learning_url( $course_id ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Continue learning' ); ?></span></a>
 			<p class="lac-enroll-message">
 				<?php echo esc_html( 'You are already enrolled in this course.' ); ?>
 			</p>
@@ -195,15 +195,7 @@ function lac_render_checkout_actions( $course_id ) {
 					<p class="lac-enroll-message" hidden></p>
 				</div>
 			<?php else : ?>
-				<button
-					type="button"
-					class="lac-enroll-button is-purchase"
-					data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>"
-					data-action="purchase"
-					data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"
-				>
-					<?php echo esc_html( sprintf( 'Complete purchase — $%s', $price_text ) ); ?>
-				</button>
+				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Complete purchase — $%s', $price_text ) ); ?></span></button>
 				<p class="lac-enroll-message" hidden></p>
 				<?php if ( ! lac_paypal_is_mock_mode() && ! lac_paypal_is_configured() ) : ?>
 					<p class="lac-enroll-hint">
@@ -212,15 +204,7 @@ function lac_render_checkout_actions( $course_id ) {
 				<?php endif; ?>
 			<?php endif; ?>
 		<?php else : ?>
-			<button
-				type="button"
-				class="lac-enroll-button is-available"
-				data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>"
-				data-action="enroll"
-				data-course_price="0"
-			>
-				<?php echo esc_html( 'Complete enrollment' ); ?>
-			</button>
+			<button type="button" class="lac-enroll-button is-available" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="enroll" data-course_price="0"><span class="lac-enroll-button__label"><?php echo esc_html( 'Complete enrollment' ); ?></span></button>
 			<p class="lac-enroll-message" hidden></p>
 		<?php endif; ?>
 	</div>

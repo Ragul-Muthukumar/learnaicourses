@@ -31,12 +31,7 @@ function lac_render_enrollment_button( $course_id ) {
 	if ( is_user_logged_in() && lac_db_is_user_enrolled( get_current_user_id(), $course_id ) ) {
 		ob_start();
 		?>
-		<a
-			class="lac-enroll-button lac-enroll-link is-enrolled"
-			href="<?php echo esc_url( lac_get_continue_learning_url( $course_id ) ); ?>"
-		>
-			<?php echo esc_html( 'Continue learning' ); ?>
-		</a>
+		<a class="lac-enroll-button lac-enroll-link is-enrolled" href="<?php echo esc_url( lac_get_continue_learning_url( $course_id ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Continue learning' ); ?></span></a>
 		<?php
 		return ob_get_clean();
 	}
@@ -45,24 +40,14 @@ function lac_render_enrollment_button( $course_id ) {
 		$price_text = number_format( $course_price, 2 );
 		ob_start();
 		?>
-		<a
-			class="lac-enroll-button lac-enroll-link is-purchase"
-			href="<?php echo esc_url( $checkout_url ); ?>"
-		>
-			<?php echo esc_html( sprintf( 'Enroll now — $%s', $price_text ) ); ?>
-		</a>
+		<a class="lac-enroll-button lac-enroll-link is-purchase" href="<?php echo esc_url( $checkout_url ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Enroll now — $%s', $price_text ) ); ?></span></a>
 		<?php
 		return ob_get_clean();
 	}
 	 // Free courses also route through checkout for a consistent flow.
 	ob_start();
 	?>
-	<a
-		class="lac-enroll-button lac-enroll-link is-available"
-		href="<?php echo esc_url( $checkout_url ); ?>"
-	>
-		<?php echo esc_html( 'Enroll free' ); ?>
-	</a>
+	<a class="lac-enroll-button lac-enroll-link is-available" href="<?php echo esc_url( $checkout_url ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Enroll free' ); ?></span></a>
 	<?php
 	return ob_get_clean();
 }
