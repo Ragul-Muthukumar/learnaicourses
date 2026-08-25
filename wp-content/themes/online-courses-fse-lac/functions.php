@@ -517,28 +517,113 @@ function lac_fse_filter_site_icon_meta_tags( $meta_tags ) {
 add_filter( 'site_icon_meta_tags', 'lac_fse_filter_site_icon_meta_tags' );
 
 /**
+ * Map a requested Site Icon pixel size to a theme favicon file.
+ *
+ * @param int $size Requested edge length.
+ * @return string Filename inside assets/images/favicon/.
+ */
+function lac_fse_favicon_file_for_size( $size ) {
+	$size = (int) $size;
+	if ( $size >= 192 ) {
+		return 'site-icon-512.png';
+	}
+	if ( $size >= 180 ) {
+		return 'apple-touch-icon.png';
+	}
+	if ( $size >= 64 ) {
+		return 'android-chrome-192x192.png';
+	}
+
+	return 'favicon-32x32.png';
+}
+
+/**
+ * Use theme favicon files when the media-library Site Icon URL is missing.
+ *
+ * Production admin bar requested lac-site-icon-512-1-150x150.png (404).
+ * Theme files in git always exist, so the toolbar icon stays visible.
+ *
+ * @param string $url     Attachment URL from core.
+ * @param int    $size    Requested size.
+ * @param int    $blog_id Blog ID (unused; single site).
+ * @return string
+ */
+function lac_fse_filter_get_site_icon_url( $url, $size, $blog_id ) {
+	unset( $blog_id );
+
+	if ( $url ) {
+		$uploads = wp_get_upload_dir();
+		$path    = str_replace( $uploads['baseurl'], $uploads['basedir'], $url );
+		$path    = preg_replace( '/\?.*$/', '', (string) $path );
+		if ( is_string( $path ) && is_readable( $path ) ) {
+			return $url;
+		}
+	}
+
+	return lac_fse_favicon_asset_url( lac_fse_favicon_file_for_size( $size ) );
+}
+add_filter( 'get_site_icon_url', 'lac_fse_filter_get_site_icon_url', 10, 3 );
+
+/**
+ * Write the Site Icon PNG and the -1 thumbnail name production requests.
+ *
+ * @param string $source Absolute path to the 512px theme icon.
+ * @return void
+ */
+function lac_fse_write_site_icon_upload_aliases( $source ) {
+	$uploads = wp_get_upload_dir();
+	$dir     = trailingslashit( $uploads['basedir'] ) . '2026/08';
+	if ( ! wp_mkdir_p( $dir ) || ! is_readable( $source ) ) {
+		return;
+	}
+
+	// Skip work when the production admin-bar filename is already on disk.
+	if ( is_readable( $dir . '/lac-site-icon-512-1-150x150.png' ) && is_readable( $dir . '/lac-site-icon-512-1.png' ) ) {
+		return;
+	}
+
+	foreach ( array( 'lac-site-icon-512.png', 'lac-site-icon-512-1.png' ) as $name ) {
+		copy( $source, $dir . '/' . $name );
+	}
+
+	$image = wp_get_image_editor( $source );
+	if ( is_wp_error( $image ) ) {
+		return;
+	}
+	$image->resize( 150, 150, true );
+	$image->save( $dir . '/lac-site-icon-512-150x150.png' );
+	$image->save( $dir . '/lac-site-icon-512-1-150x150.png' );
+}
+
+/**
  * Register the 512px brand icon as the WordPress Site Icon when none is set.
  *
- * Leaves an existing custom Site Icon alone so operators can replace it later.
+ * Also restores a missing attached file so the admin-bar icon does not 404.
  *
  * @return void
  */
 function lac_fse_ensure_site_icon() {
-	$current_id = (int) get_option( 'site_icon' );
-	if ( $current_id > 0 && wp_attachment_is_image( $current_id ) ) {
-		return;
-	}
-
 	$source = get_stylesheet_directory() . '/assets/images/favicon/site-icon-512.png';
 	if ( ! is_readable( $source ) ) {
 		return;
+	}
+
+	// Keep both upload filenames on disk so local and production URLs resolve.
+	lac_fse_write_site_icon_upload_aliases( $source );
+
+	$current_id = (int) get_option( 'site_icon' );
+	if ( $current_id > 0 && wp_attachment_is_image( $current_id ) ) {
+		$attached = (string) get_attached_file( $current_id );
+		if ( $attached && is_readable( $attached ) ) {
+			return;
+		}
 	}
 
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	require_once ABSPATH . 'wp-admin/includes/media.php';
 	require_once ABSPATH . 'wp-admin/includes/image.php';
 
-	$upload = wp_upload_bits( 'lac-site-icon-512.png', null, (string) file_get_contents( $source ) );
+	$upload = wp_upload_bits( 'lac-site-icon-512-1.png', null, (string) file_get_contents( $source ) );
 	if ( ! empty( $upload['error'] ) || empty( $upload['file'] ) ) {
 		return;
 	}
