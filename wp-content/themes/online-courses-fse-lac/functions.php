@@ -308,19 +308,17 @@ function lac_fse_course_board_shortcode() {
 						if ( '' === $lac_lesson_excerpt ) {
 							$lac_lesson_excerpt = wp_trim_words( wp_strip_all_tags( (string) $lac_lesson->post_content ), 18 );
 						}
+						$lac_excerpt_html = ( '' !== $lac_lesson_excerpt )
+							? '<span class="lac-lesson-list__excerpt">' . esc_html( $lac_lesson_excerpt ) . '</span>'
+							: '';
+						// Echo the row with no newlines inside <a>. The shortcode block runs wpautop,
+						// which turns those newlines into <br> and inflates each curriculum card.
+						echo '<li><a href="' . esc_url( get_permalink( $lac_lesson ) ) . '">';
+						echo '<span class="lac-lesson-list__index">' . esc_html( str_pad( (string) ( $lac_lesson_index + 1 ), 2, '0', STR_PAD_LEFT ) ) . '</span>';
+						echo '<span class="lac-lesson-list__body"><span class="lac-lesson-list__title">' . esc_html( get_the_title( $lac_lesson ) ) . '</span>' . $lac_excerpt_html . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo '<span class="lac-lesson-list__go" aria-hidden="true">→</span>';
+						echo '</a></li>';
 						?>
-						<li>
-							<a href="<?php echo esc_url( get_permalink( $lac_lesson ) ); ?>">
-								<span class="lac-lesson-list__index"><?php echo esc_html( str_pad( (string) ( $lac_lesson_index + 1 ), 2, '0', STR_PAD_LEFT ) ); ?></span>
-								<span class="lac-lesson-list__body">
-									<span class="lac-lesson-list__title"><?php echo esc_html( get_the_title( $lac_lesson ) ); ?></span>
-									<?php if ( '' !== $lac_lesson_excerpt ) : ?>
-										<span class="lac-lesson-list__excerpt"><?php echo esc_html( $lac_lesson_excerpt ); ?></span>
-									<?php endif; ?>
-								</span>
-								<span class="lac-lesson-list__go" aria-hidden="true">→</span>
-							</a>
-						</li>
 					<?php endforeach; ?>
 				</ol>
 			<?php else : ?>
