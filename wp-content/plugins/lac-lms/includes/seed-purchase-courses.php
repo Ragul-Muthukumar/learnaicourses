@@ -1,13 +1,14 @@
 <?php
 /**
- * Seeds 50 purchasable AI course posts priced $1 through $50.
+ * Seeds purchasable AI course posts and keeps catalog prices in range.
  *
  * What this file does:
  * - Inserts lac_course posts with price, level, and hours meta.
+ * - One-time reprices existing courses to a random USD amount from $1–$500.
  * Process:
- * 1) Skip if the lac_purchase_courses_seeded option is already set.
- * 2) Loop prices 1–50 and create one course per price tier.
- * 3) Mark the option so the batch is not duplicated on reruns.
+ * 1) Skip insert seed if lac_purchase_courses_seeded is already set.
+ * 2) Create one course per catalog title with a random $1–$500 price.
+ * 3) On later deploys, reprice published courses once via option flag.
  */
 
  // Block direct access outside WordPress.
@@ -77,18 +78,28 @@ function lac_get_purchase_course_titles() {
 }
 
 /**
- * Map price tier to course difficulty level.
+ * Pick a random whole-dollar course price between $1 and $500.
  *
- * @param int $price_tier Dollar price from 1 to 50.
+ * @return int Random price in USD (inclusive).
+ */
+function lac_random_course_price_usd() {
+	 // Inclusive random integer so every course lands in the $1–$500 band.
+	return (int) wp_rand( 1, 500 );
+}
+
+/**
+ * Map price to course difficulty level.
+ *
+ * @param int $price_usd Dollar price from 1 to 500.
  * @return string beginner|intermediate|advanced
  */
-function lac_get_level_for_price( $price_tier ) {
+function lac_get_level_for_price( $price_usd ) {
 	 // Beginner courses for the lowest price band.
-	if ( $price_tier <= 15 ) {
+	if ( $price_usd <= 150 ) {
 		return 'beginner';
 	}
 	 // Intermediate courses for the mid price band.
-	if ( $price_tier <= 35 ) {
+	if ( $price_usd <= 350 ) {
 		return 'intermediate';
 	}
 	 // Advanced courses for the top price band.
@@ -96,14 +107,14 @@ function lac_get_level_for_price( $price_tier ) {
 }
 
 /**
- * Estimate course hours from the price tier.
+ * Estimate course hours from the price.
  *
- * @param int $price_tier Dollar price from 1 to 50.
+ * @param int $price_usd Dollar price from 1 to 500.
  * @return float Estimated learning hours.
  */
-function lac_get_hours_for_price( $price_tier ) {
-	 // Scale hours roughly with price: ~0.5h at $1 up to ~25h at $50.
-	return round( max( 0.5, $price_tier * 0.5 ), 1 );
+function lac_get_hours_for_price( $price_usd ) {
+	 // Scale hours roughly with price: ~0.5h at $1 up to ~25h near $500.
+	return round( max( 0.5, min( 25, $price_usd * 0.05 ) ), 1 );
 }
 
 /**
@@ -126,22 +137,20 @@ function lac_seed_purchase_courses_if_needed() {
 	 // Track how many posts were successfully created.
 	$created_count = 0;
 
-	 // Insert one course per price from $1 to $50.
-	for ( $price_tier = 1; $price_tier <= 50; $price_tier++ ) {
-		// Resolve title with a fallback when the map is missing an entry.
-		$course_title = isset( $course_titles[ $price_tier ] )
-			? $course_titles[ $price_tier ]
-			: 'AI Course Tier ' . $price_tier;
+	 // Insert one course per catalog title with a random $1–$500 price.
+	foreach ( $course_titles as $title_index => $course_title ) {
+		// Draw a random whole-dollar price for this new course.
+		$price_usd = lac_random_course_price_usd();
 
 		// Build excerpt and body copy for the purchasable listing.
 		$course_excerpt = sprintf(
 			'Purchasable AI course — $%d. Learn practical skills you can apply immediately.',
-			$price_tier
+			$price_usd
 		);
 		$course_content = sprintf(
 			'<p><strong>%s</strong> is a hands-on AI course priced at <strong>$%d</strong>.</p><p>Includes video lessons, exercises, and a certificate of completion. Enroll now to start learning.</p>',
 			esc_html( $course_title ),
-			$price_tier
+			$price_usd
 		);
 
 		// Insert the published course post.
@@ -157,14 +166,14 @@ function lac_seed_purchase_courses_if_needed() {
 
 		// Skip meta when the insert failed.
 		if ( is_wp_error( $course_id ) || ! $course_id ) {
-			lac_log_error( 'Failed to seed purchase course at $' . $price_tier );
+			lac_log_error( 'Failed to seed purchase course at index ' . absint( $title_index ) );
 			continue;
 		}
 
 		// Store purchasable price and supporting meta.
-		update_post_meta( $course_id, '_lac_course_price', (float) $price_tier );
-		update_post_meta( $course_id, '_lac_course_level', lac_get_level_for_price( $price_tier ) );
-		update_post_meta( $course_id, '_lac_course_hours', lac_get_hours_for_price( $price_tier ) );
+		update_post_meta( $course_id, '_lac_course_price', (float) $price_usd );
+		update_post_meta( $course_id, '_lac_course_level', lac_get_level_for_price( $price_usd ) );
+		update_post_meta( $course_id, '_lac_course_hours', lac_get_hours_for_price( $price_usd ) );
 
 		// Attach a default curriculum so Continue Learning has a real destination.
 		if ( function_exists( 'lac_ensure_default_lessons_for_course' ) ) {
@@ -228,3 +237,68 @@ function lac_backfill_missing_course_lessons() {
 	lac_log_info( 'Backfilled default lessons for courses missing a curriculum.' );
 }
 add_action( 'init', 'lac_backfill_missing_course_lessons', 20 );
+
+/**
+ * One-time reprice of published courses to random $1–$500 amounts.
+ *
+ * Runs on local and production after the plugin file is deployed. Free ($0)
+ * courses stay free so enroll-free paths keep working.
+ *
+ * @return array{updated:int, skipped:bool} Summary of the reprice run.
+ */
+function lac_reprice_courses_random_1_to_500_if_needed() {
+	 // Skip when this reprice batch already completed.
+	if ( get_option( 'lac_course_prices_randomized_v1' ) ) {
+		return array(
+			'updated' => 0,
+			'skipped' => true,
+		);
+	}
+	 // Prevent overlapping writes if two requests hit init together.
+	if ( get_transient( 'lac_repricing_courses' ) ) {
+		return array(
+			'updated' => 0,
+			'skipped' => true,
+		);
+	}
+	set_transient( 'lac_repricing_courses', 1, 120 );
+
+	 // Load every published course id for meta updates.
+	$course_ids = get_posts(
+		array(
+			'post_type'      => 'lac_course',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+
+	 // Count how many paid courses received a new random price.
+	$updated_count = 0;
+	foreach ( $course_ids as $course_id ) {
+		 // Read the current price so free courses are left alone.
+		$current_price = lac_get_course_price( (int) $course_id );
+		if ( $current_price <= 0 ) {
+			continue;
+		}
+		 // Assign a new random whole-dollar price in the $1–$500 range.
+		$price_usd = lac_random_course_price_usd();
+		update_post_meta( (int) $course_id, '_lac_course_price', (float) $price_usd );
+		update_post_meta( (int) $course_id, '_lac_course_level', lac_get_level_for_price( $price_usd ) );
+		update_post_meta( (int) $course_id, '_lac_course_hours', lac_get_hours_for_price( $price_usd ) );
+		$updated_count++;
+	}
+
+	 // Persist the one-time flag and clear the lock.
+	update_option( 'lac_course_prices_randomized_v1', 1, true );
+	delete_transient( 'lac_repricing_courses' );
+	lac_log_info( 'Randomized course prices ($1–$500) for ' . absint( $updated_count ) . ' courses.' );
+
+	return array(
+		'updated' => $updated_count,
+		'skipped' => false,
+	);
+}
+
+ // Reprice catalog once after plugin code is deployed to any environment.
+add_action( 'init', 'lac_reprice_courses_random_1_to_500_if_needed', 25 );
