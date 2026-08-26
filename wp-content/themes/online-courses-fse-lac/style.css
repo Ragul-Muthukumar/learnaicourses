@@ -4,8 +4,22 @@ Theme URI:
 Description: Child of Online Courses FSE with catalog templates for the LAC LMS plugin.
 Author: Learn AI Courses
 Template: online-courses-fse
-Version: 1.0.24
+Version: 1.0.25
 Requires at least: 6.4
 Requires PHP: 8.1
 Text Domain: online-courses-fse-lac
 */
+
+/* Slightly smaller type scale across the storefront. */
+html {
+	font-size: 93.75%;
+}
+
+body {
+	font-size: 0.95em;
+}
+
+h1,
+.has-colossus-font-size {
+	letter-spacing: -0.02em;
+}

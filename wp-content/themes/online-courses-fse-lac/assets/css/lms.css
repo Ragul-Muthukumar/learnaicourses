@@ -55,7 +55,7 @@ body.lac-fse-lms {
 .lac-lesson h1 {
 	margin: 0 0 0.75rem;
 	color: var(--lac-heading);
-	font-size: clamp(1.85rem, 3vw, 2.55rem);
+	font-size: clamp(1.65rem, 2.7vw, 2.25rem);
 	line-height: 1.2;
 	font-weight: 800;
 }
@@ -64,7 +64,7 @@ body.lac-fse-lms {
 	margin: 0 0 1.5rem;
 	max-width: 40rem;
 	color: var(--lac-muted);
-	font-size: 1.05rem;
+	font-size: 0.98rem;
 	line-height: 1.55;
 }
 
@@ -76,7 +76,7 @@ body.lac-fse-lms {
 .lac-layout h2 {
 	margin: 0 0 0.4rem;
 	color: var(--lac-heading);
-	font-size: 1.45rem;
+	font-size: 1.3rem;
 }
 
 .lac-course-grid {
@@ -567,7 +567,7 @@ body.lac-fse-lms .lac-checkout__eyebrow {
 
 body.lac-fse-lms .lac-checkout__title {
 	color: var(--lac-heading);
-	font-size: clamp(1.85rem, 3vw, 2.55rem);
+	font-size: clamp(1.65rem, 2.7vw, 2.25rem);
 	font-weight: 800;
 }
 
