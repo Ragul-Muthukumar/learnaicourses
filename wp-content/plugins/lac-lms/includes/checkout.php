@@ -183,6 +183,13 @@ function lac_render_checkout_actions( $course_id ) {
 		<?php elseif ( $course_price > 0 ) : ?>
 			<?php
 			$price_text = number_format( $course_price, 2 );
+			?>
+			<p class="lac-checkout__digital-badge"><?php echo esc_html( 'Digital purchase' ); ?></p>
+			<p class="lac-checkout__digital-note">
+				<?php echo esc_html( 'This is an online digital course. Access is delivered immediately after payment. All digital sales are final — no refunds.' ); ?>
+				<a href="<?php echo esc_url( home_url( '/refund-policy/' ) ); ?>"><?php echo esc_html( 'Refund Policy' ); ?></a>
+			</p>
+			<?php
 			if ( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) :
 				?>
 				<div
@@ -190,12 +197,12 @@ function lac_render_checkout_actions( $course_id ) {
 					data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>"
 					data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"
 				>
-					<p class="lac-paypal-price"><?php echo esc_html( sprintf( 'Total: $%s', $price_text ) ); ?></p>
+					<p class="lac-paypal-price"><?php echo esc_html( sprintf( 'Digital course total: $%s', $price_text ) ); ?></p>
 					<div class="lac-paypal-button-container"></div>
 					<p class="lac-enroll-message" hidden></p>
 				</div>
 			<?php else : ?>
-				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Complete purchase — $%s', $price_text ) ); ?></span></button>
+				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Buy digital course — $%s', $price_text ) ); ?></span></button>
 				<p class="lac-enroll-message" hidden></p>
 				<?php if ( ! lac_paypal_is_mock_mode() && ! lac_paypal_is_configured() ) : ?>
 					<p class="lac-enroll-hint">
@@ -254,8 +261,11 @@ function lac_checkout_shortcode() {
 				<?php if ( $thumbnail_url ) : ?>
 					<img class="lac-checkout__image" src="<?php echo esc_url( $thumbnail_url ); ?>" alt="<?php echo esc_attr( get_the_title( $course_id ) ); ?>" />
 				<?php endif; ?>
-				<p class="lac-checkout__total-label"><?php echo esc_html( 'Order total' ); ?></p>
+				<p class="lac-checkout__total-label"><?php echo esc_html( 'Digital course total' ); ?></p>
 				<p class="lac-checkout__total"><?php echo esc_html( $price_label ); ?></p>
+				<?php if ( $course_price > 0 ) : ?>
+					<p class="lac-checkout__fulfillment"><?php echo esc_html( 'Fulfillment: instant digital access (no shipping).' ); ?></p>
+				<?php endif; ?>
 				<?php echo lac_render_checkout_actions( $course_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</aside>
 		</div>
@@ -278,3 +288,98 @@ function lac_checkout_bootstrap_page() {
 
  // Create or reuse the checkout page on every request until stored.
 add_action( 'init', 'lac_checkout_bootstrap_page' );
+
+/**
+ * Return the published Refund Policy page HTML (digital goods, no refunds).
+ *
+ * @return string Block markup for the refund-policy page.
+ */
+function lac_get_digital_no_refund_policy_content() {
+	 // Keep contact email in one place for policy copy.
+	$support_email = 'fenllinskiii16@gmail.com';
+	 // Build Gutenberg-friendly HTML for the policy page body.
+	return '<!-- wp:heading -->
+<h2 class="wp-block-heading">Refund Policy</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">All products on Learn AI Courses are <strong>digital purchases</strong> only (online courses delivered instantly as digital content — not physical goods). <strong>All sales are final. There are no refunds.</strong></p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">1. Digital purchase — no refunds</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">When you pay, you receive immediate online access to digital course materials. Because this is a digital product and access starts right away, we do not offer refunds, returns, exchanges, or cancellations after payment—including mistaken purchases or change of mind.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">2. Before you buy</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">Please review the course title, description, curriculum, and price carefully before checkout. If you have questions, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a> <strong>before</strong> purchasing.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">3. Access problems</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">If you paid but cannot open your digital course because of a technical issue on our side, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a>. We will help restore access. Access support is not a refund.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">4. Free courses</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">Free enrollments have no purchase amount, so no refund applies.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">5. Contact</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">For billing or access help, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a>.</p>
+<!-- /wp:paragraph -->';
+}
+
+/**
+ * Overwrite the live Refund Policy page once with digital no-refund copy.
+ *
+ * Hostinger often still shows the old 7-day text until this runs after deploy.
+ *
+ * @return void
+ */
+function lac_sync_refund_policy_page_if_needed() {
+	 // Skip when this digital policy version was already written.
+	if ( get_option( 'lac_refund_policy_digital_v2' ) ) {
+		return;
+	}
+	 // Find the published refund-policy page by slug.
+	$pages = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'name'           => 'refund-policy',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+		)
+	);
+	 // Abort quietly when the page does not exist yet.
+	if ( empty( $pages ) ) {
+		lac_log_error( 'Refund policy page (slug refund-policy) was not found for sync.' );
+		return;
+	}
+	 // Replace page content with the digital no-refunds policy.
+	$update_result = wp_update_post(
+		array(
+			'ID'           => (int) $pages[0],
+			'post_content' => lac_get_digital_no_refund_policy_content(),
+		),
+		true
+	);
+	 // Log failures so operators can fix the page manually.
+	if ( is_wp_error( $update_result ) ) {
+		lac_log_error( 'Could not sync refund policy page: ' . $update_result->get_error_message() );
+		return;
+	}
+	 // Mark complete so the page is not rewritten on every request.
+	update_option( 'lac_refund_policy_digital_v2', 1, true );
+	lac_log_info( 'Synced Refund Policy page to digital purchase / no-refunds copy.' );
+}
+
+ // Run the one-time refund policy sync after WordPress is ready.
+add_action( 'init', 'lac_sync_refund_policy_page_if_needed', 30 );

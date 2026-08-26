@@ -3,7 +3,7 @@
  * Plugin Name: LAC LMS
  * Plugin URI:  http://localhost/learnaicourses
  * Description: Learn AI Courses LMS — courses, lessons, enrollment, PayPal checkout, and REST APIs.
- * Version:     1.4.3
+ * Version:     1.4.4
  * Author:      Learn AI Courses
  * Text Domain: lac-lms
  * Requires at least: 6.4
@@ -32,7 +32,7 @@ define( 'LAC_LMS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'LAC_LMS_URL', plugin_dir_url( __FILE__ ) );
 
  // Semantic version used for cache-busting enqueued assets.
-define( 'LAC_LMS_VERSION', '1.4.3' );
+define( 'LAC_LMS_VERSION', '1.4.4' );
 
  // Shared helpers: logging, id hashing, and response shaping.
 require_once LAC_LMS_PATH . 'includes/common.php';
