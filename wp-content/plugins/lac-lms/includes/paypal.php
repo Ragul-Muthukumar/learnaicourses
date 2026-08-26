@@ -3,10 +3,10 @@
  * PayPal Orders API helpers for Learn AI Courses purchases.
  *
  * What this file does:
- * - Reads PayPal credentials from environment constants.
+ * - Reads PayPal credentials from PHP constants, process env, or the site .env file.
  * - Creates and captures checkout orders against PayPal REST API v2.
  * Process:
- * 1) Resolve sandbox/live API host from PAYPAL_MODE.
+ * 1) Resolve sandbox/live/mock mode from PAYPAL_MODE.
  * 2) Fetch an OAuth access token with client id + secret.
  * 3) Create a PayPal order for a priced course.
  * 4) Capture an approved order and return the capture payload.
@@ -18,13 +18,121 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Read a PayPal setting from a PHP constant, the process env, or the site .env file.
+ *
+ * WordPress does not load .env by itself, so PAYPAL_MODE=mock in that file
+ * was ignored until this helper parsed the site-root file.
+ *
+ * @param string $name Setting name such as PAYPAL_MODE.
+ * @return string Trimmed value or empty string when unset.
+ */
+function lac_paypal_env( $name ) {
+	// Prefer wp-config.php constants when they are defined and non-empty.
+	if ( defined( $name ) ) {
+		$constant_value = constant( $name );
+		if ( is_string( $constant_value ) && '' !== trim( $constant_value ) ) {
+			return trim( $constant_value );
+		}
+	}
+
+	// Next, honor process / Apache environment variables.
+	if ( function_exists( 'getenv' ) ) {
+		$process_value = getenv( $name );
+		if ( is_string( $process_value ) && '' !== trim( $process_value ) ) {
+			return trim( $process_value );
+		}
+	}
+
+	if ( isset( $_ENV[ $name ] ) && is_string( $_ENV[ $name ] ) && '' !== trim( $_ENV[ $name ] ) ) {
+		return trim( $_ENV[ $name ] );
+	}
+
+	// Last, parse the site-root .env file (WordPress does not load it itself).
+	$file_values = lac_paypal_env_file_values();
+	if ( isset( $file_values[ $name ] ) ) {
+		return $file_values[ $name ];
+	}
+
+	return '';
+}
+
+/**
+ * Parse KEY=value lines from the site-root .env file once per request.
+ *
+ * @return array<string, string>
+ */
+function lac_paypal_env_file_values() {
+	static $values = null;
+	if ( is_array( $values ) ) {
+		return $values;
+	}
+
+	$values = array();
+	$paths  = array( ABSPATH . '.env' );
+	// Also search WordPress root from the plugin path when ABSPATH differs.
+	if ( defined( 'LAC_LMS_PATH' ) ) {
+		$paths[] = dirname( LAC_LMS_PATH, 3 ) . '/.env';
+	}
+
+	$path = '';
+	foreach ( array_unique( $paths ) as $candidate ) {
+		if ( is_readable( $candidate ) ) {
+			$path = $candidate;
+			break;
+		}
+	}
+	if ( '' === $path ) {
+		return $values;
+	}
+
+	$lines = file( $path, FILE_IGNORE_NEW_LINES );
+	if ( ! is_array( $lines ) ) {
+		return $values;
+	}
+
+	foreach ( $lines as $line ) {
+		$line = trim( (string) $line );
+		if ( str_starts_with( $line, 'export ' ) ) {
+			$line = trim( substr( $line, 7 ) );
+		}
+		if ( '' === $line || str_starts_with( $line, '#' ) || ! str_contains( $line, '=' ) ) {
+			continue;
+		}
+		list( $key, $raw_value ) = explode( '=', $line, 2 );
+		$key                     = trim( $key );
+		if ( '' === $key ) {
+			continue;
+		}
+		$values[ $key ] = trim( $raw_value, " \t\"'" );
+	}
+
+	return $values;
+}
+
+/**
+ * Return whether a credential is a real value, not an .env.example placeholder.
+ *
+ * @param string $value Client id or secret.
+ * @return bool True when the value can be sent to PayPal.
+ */
+function lac_paypal_is_usable_secret( $value ) {
+	$value = strtolower( trim( $value ) );
+	if ( '' === $value ) {
+		return false;
+	}
+
+	// Reject .env.example placeholders such as your_sandbox_client_id.
+	return ! str_starts_with( $value, 'your_' ) && 'changeme' !== $value && 'placeholder' !== $value;
+}
+
+/**
  * Return whether PayPal credentials are configured for checkout.
  *
- * @return bool True when client id and secret are present.
+ * @return bool True when a real client id and secret are present.
  */
 function lac_paypal_is_configured() {
-	 // Require both public client id and private client secret.
-	return lac_paypal_client_id() !== '' && lac_paypal_client_secret() !== '';
+	return lac_paypal_is_usable_secret( lac_paypal_client_id() )
+		&& lac_paypal_is_usable_secret( lac_paypal_client_secret() );
 }
 
 /**
@@ -38,31 +146,21 @@ function lac_paypal_is_mock_mode() {
 }
 
 /**
- * Read the PayPal client id from a defined constant.
+ * Read the PayPal client id from constants, env, or .env.
  *
  * @return string Client id or empty string when unset.
  */
 function lac_paypal_client_id() {
-	 // Prefer the environment-backed constant from .env / wp-config.
-	if ( defined( 'PAYPAL_CLIENT_ID' ) && is_string( PAYPAL_CLIENT_ID ) ) {
-		return trim( PAYPAL_CLIENT_ID );
-	}
-	 // Fall back to empty so callers can detect misconfiguration.
-	return '';
+	return lac_paypal_env( 'PAYPAL_CLIENT_ID' );
 }
 
 /**
- * Read the PayPal client secret from a defined constant.
+ * Read the PayPal client secret from constants, env, or .env.
  *
  * @return string Client secret or empty string when unset.
  */
 function lac_paypal_client_secret() {
-	 // Prefer the environment-backed constant from .env / wp-config.
-	if ( defined( 'PAYPAL_CLIENT_SECRET' ) && is_string( PAYPAL_CLIENT_SECRET ) ) {
-		return trim( PAYPAL_CLIENT_SECRET );
-	}
-	 // Fall back to empty so callers can detect misconfiguration.
-	return '';
+	return lac_paypal_env( 'PAYPAL_CLIENT_SECRET' );
 }
 
 /**
@@ -71,17 +169,13 @@ function lac_paypal_client_secret() {
  * @return string sandbox, live, or mock.
  */
 function lac_paypal_mode() {
-	 // Default safely to sandbox for remote PayPal testing.
-	$mode = 'sandbox';
-	 // Allow operators to flip mode via environment constant.
-	if ( defined( 'PAYPAL_MODE' ) && is_string( PAYPAL_MODE ) ) {
-		$mode = strtolower( trim( PAYPAL_MODE ) );
-	}
-	 // Accept mock for local demo purchases without credentials.
+	$mode = strtolower( lac_paypal_env( 'PAYPAL_MODE' ) );
+	// Mock skips the PayPal SDK and uses the local purchase REST route.
 	if ( 'mock' === $mode ) {
 		return 'mock';
 	}
-	 // Normalize unexpected values back to sandbox.
+
+	// Unknown values fall back to sandbox so live charges cannot happen by accident.
 	return ( 'live' === $mode ) ? 'live' : 'sandbox';
 }
 
@@ -91,14 +185,9 @@ function lac_paypal_mode() {
  * @return string Uppercase ISO currency code.
  */
 function lac_paypal_currency() {
-	 // Default to USD for the seeded course catalog prices.
-	$currency = 'USD';
-	 // Allow operators to override via environment constant.
-	if ( defined( 'PAYPAL_CURRENCY' ) && is_string( PAYPAL_CURRENCY ) ) {
-		$currency = strtoupper( trim( PAYPAL_CURRENCY ) );
-	}
-	 // Reject empty overrides and keep USD.
-	return $currency !== '' ? $currency : 'USD';
+	$currency = strtoupper( lac_paypal_env( 'PAYPAL_CURRENCY' ) );
+
+	return '' !== $currency ? $currency : 'USD';
 }
 
 /**

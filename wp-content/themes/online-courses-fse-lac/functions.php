@@ -740,6 +740,11 @@ function lac_fse_policy_page_definitions() {
 			'slug'    => 'refund-policy',
 			'content' => lac_fse_refund_page_content(),
 		),
+		array(
+			'title'   => 'Contact Us',
+			'slug'    => 'contact-us',
+			'content' => lac_fse_contact_page_content(),
+		),
 	);
 }
 
@@ -857,7 +862,7 @@ function lac_fse_privacy_page_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>You can review and update the profile details on your account. To ask for a copy or deletion of personal data I hold, contact me from the email address on that account. I may keep records I am required to keep for legal, security, or payment reasons. Related rules are in the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>.</p>
+<p>You can review and update the profile details on your account. To ask for a copy or deletion of personal data I hold, use the <a href="/contact-us/">Contact Us</a> page from the email address on that account. I may keep records I am required to keep for legal, security, or payment reasons. Related rules are in the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>.</p>
 <!-- /wp:paragraph -->';
 }
 
@@ -886,7 +891,7 @@ function lac_fse_refund_page_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Sign in to your account and send me a refund request that includes the course name and the PayPal order or receipt email. I process eligible refunds back to the original payment method. PayPal timing can take several business days after I approve the request.</p>
+<p>Send a refund request through the <a href="/contact-us/">Contact Us</a> page. Include the course name and the PayPal order or receipt email. I process eligible refunds back to the original payment method. PayPal timing can take several business days after I approve the request.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
@@ -902,7 +907,223 @@ function lac_fse_refund_page_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Course use is also covered by the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>. Account data is covered by the <a href="/privacy-policy/">Privacy Policy</a>.</p>
+<p>Course use is also covered by the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>. Account data is covered by the <a href="/privacy-policy/">Privacy Policy</a>. Questions go to <a href="/contact-us/">Contact Us</a>.</p>
 <!-- /wp:paragraph -->';
 }
+
+/**
+ * Gutenberg markup for the Contact Us page.
+ *
+ * PayPal requires a public way for buyers to reach the site owner.
+ *
+ * @return string
+ */
+function lac_fse_contact_page_content() {
+	return '<!-- wp:shortcode -->
+[lac_contact_form]
+<!-- /wp:shortcode -->';
+}
+
+/**
+ * Public owner name shown on Contact Us.
+ *
+ * @return string
+ */
+function lac_fse_contact_name() {
+	return 'Fenllin Skill P';
+}
+
+/**
+ * Email address used for public customer contact and form delivery.
+ *
+ * @return string
+ */
+function lac_fse_contact_email() {
+	return 'Fenllinskiii16@gmail.com';
+}
+
+/**
+ * Public address shown on Contact Us.
+ *
+ * @return string
+ */
+function lac_fse_contact_address() {
+	return '4nd home, platinum villa, blackberry street, sindhu salai, mugalivakam, chennai 600125';
+}
+
+/**
+ * Public mobile number shown on Contact Us.
+ *
+ * @return string
+ */
+function lac_fse_contact_phone() {
+	return '+91 73581 13783';
+}
+
+/**
+ * Allowed contact form topics.
+ *
+ * @return string[]
+ */
+function lac_fse_contact_topics() {
+	return array(
+		'Course question',
+		'Payment or refund',
+		'Account or privacy',
+		'Something else',
+	);
+}
+
+/**
+ * Render the public contact email and message form.
+ *
+ * @return string
+ */
+function lac_fse_contact_form_shortcode() {
+	$name       = lac_fse_contact_name();
+	$email      = lac_fse_contact_email();
+	$phone      = lac_fse_contact_phone();
+	$phone_href = 'tel:' . preg_replace( '/\s+/', '', $phone );
+	$status     = isset( $_GET['contact'] ) ? sanitize_key( wp_unslash( $_GET['contact'] ) ) : '';
+	$user       = wp_get_current_user();
+	$name_value = ( $user && $user->exists() ) ? $user->display_name : '';
+	$mail_value = ( $user && $user->exists() ) ? $user->user_email : '';
+
+	ob_start();
+
+	if ( 'sent' === $status ) {
+		echo '<p class="lac-contact-form__notice is-success">Thanks. Your message was received and a reply will be sent to the email you entered.</p>';
+	} elseif ( 'invalid' === $status ) {
+		echo '<p class="lac-contact-form__notice is-error">Please enter your name, a valid email, a topic, and a message.</p>';
+	} elseif ( 'limited' === $status ) {
+		echo '<p class="lac-contact-form__notice is-error">Please wait a little before sending another message.</p>';
+	} elseif ( 'failed' === $status ) {
+		echo '<p class="lac-contact-form__notice is-error">The message could not be sent just now. Please email directly and try again later.</p>';
+	}
+	?>
+	<div class="lac-contact-details">
+		<p class="lac-contact-details__intro">Feel free to contact and reach us.</p>
+		<p>Questions or feedback about a course, payment, refund, or your account are welcome. Use the details below or send a message.</p>
+		<div class="lac-contact-details__item">
+			<h2>Name</h2>
+			<p><?php echo esc_html( $name ); ?></p>
+		</div>
+		<div class="lac-contact-details__item">
+			<h2>Address</h2>
+			<p><?php echo nl2br( esc_html( lac_fse_contact_address() ) ); ?></p>
+		</div>
+		<div class="lac-contact-details__item">
+			<h2>Mobile</h2>
+			<p><a href="<?php echo esc_url( $phone_href ); ?>"><?php echo esc_html( $phone ); ?></a></p>
+		</div>
+		<div class="lac-contact-details__item">
+			<h2>Email</h2>
+			<p><a href="mailto:<?php echo esc_attr( $email ); ?>"><?php echo esc_html( $email ); ?></a></p>
+		</div>
+	</div>
+	<?php if ( 'sent' !== $status ) : ?>
+	<form class="lac-contact-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<input type="hidden" name="action" value="lac_contact" />
+		<?php wp_nonce_field( 'lac_contact', 'lac_contact_nonce' ); ?>
+		<p class="lac-contact-form__hp" aria-hidden="true">
+			<label for="lac_website">Website</label>
+			<input type="text" id="lac_website" name="lac_website" value="" tabindex="-1" autocomplete="off" />
+		</p>
+		<label>
+			<span>Name</span>
+			<input type="text" name="lac_name" value="<?php echo esc_attr( $name_value ); ?>" required maxlength="120" autocomplete="name" />
+		</label>
+		<label>
+			<span>Email</span>
+			<input type="email" name="lac_email" value="<?php echo esc_attr( $mail_value ); ?>" required maxlength="120" autocomplete="email" />
+		</label>
+		<label>
+			<span>Topic</span>
+			<select name="lac_topic" required>
+				<option value="">Choose a topic</option>
+				<?php foreach ( lac_fse_contact_topics() as $topic ) : ?>
+					<option value="<?php echo esc_attr( $topic ); ?>"><?php echo esc_html( $topic ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		<label>
+			<span>Message</span>
+			<textarea name="lac_message" rows="6" required maxlength="4000"></textarea>
+		</label>
+		<button class="lac-contact-form__submit" type="submit">Send message</button>
+	</form>
+	<?php endif; ?>
+	<?php
+
+	return (string) ob_get_clean();
+}
+add_shortcode( 'lac_contact_form', 'lac_fse_contact_form_shortcode' );
+
+/**
+ * Redirect back to Contact Us with a status query argument.
+ *
+ * @param string $status sent, invalid, limited, or failed.
+ * @return void
+ */
+function lac_fse_contact_redirect( $status ) {
+	$page_id = lac_fse_find_policy_page_id( 'contact-us' );
+	$url     = $page_id > 0 ? get_permalink( $page_id ) : home_url( '/contact-us/' );
+	wp_safe_redirect( add_query_arg( 'contact', sanitize_key( $status ), $url ) );
+	exit;
+}
+
+/**
+ * Accept a public contact form post, then email the site owner.
+ *
+ * @return void
+ */
+function lac_fse_handle_contact_form() {
+	$nonce = isset( $_POST['lac_contact_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['lac_contact_nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'lac_contact' ) ) {
+		lac_fse_contact_redirect( 'invalid' );
+	}
+
+	// Silent success when the hidden honeypot field is filled.
+	if ( ! empty( $_POST['lac_website'] ) ) {
+		lac_fse_contact_redirect( 'sent' );
+	}
+
+	$ip_address = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+	$ip_key     = 'lac_contact_' . md5( $ip_address );
+	if ( false !== get_transient( $ip_key ) ) {
+		lac_fse_contact_redirect( 'limited' );
+	}
+
+	$name    = isset( $_POST['lac_name'] ) ? sanitize_text_field( wp_unslash( $_POST['lac_name'] ) ) : '';
+	$email   = isset( $_POST['lac_email'] ) ? sanitize_email( wp_unslash( $_POST['lac_email'] ) ) : '';
+	$topic   = isset( $_POST['lac_topic'] ) ? sanitize_text_field( wp_unslash( $_POST['lac_topic'] ) ) : '';
+	$message = isset( $_POST['lac_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['lac_message'] ) ) : '';
+
+	if ( '' === $name || ! is_email( $email ) || ! in_array( $topic, lac_fse_contact_topics(), true ) || '' === $message ) {
+		lac_fse_contact_redirect( 'invalid' );
+	}
+
+	$to = lac_fse_contact_email();
+	if ( '' === $to ) {
+		lac_fse_contact_redirect( 'failed' );
+	}
+
+	$subject = sprintf( '[Learn AI Courses] %s from %s', $topic, $name );
+	$body    = "Name: {$name}\nEmail: {$email}\nTopic: {$topic}\n\n{$message}\n";
+	$headers = array(
+		'Content-Type: text/plain; charset=UTF-8',
+		'Reply-To: ' . $email,
+	);
+
+	$sent = wp_mail( $to, $subject, $body, $headers );
+	if ( ! $sent ) {
+		lac_fse_contact_redirect( 'failed' );
+	}
+
+	set_transient( $ip_key, 1, HOUR_IN_SECONDS );
+	lac_fse_contact_redirect( 'sent' );
+}
+add_action( 'admin_post_nopriv_lac_contact', 'lac_fse_handle_contact_form' );
+add_action( 'admin_post_lac_contact', 'lac_fse_handle_contact_form' );
+
 

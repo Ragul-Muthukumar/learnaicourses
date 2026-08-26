@@ -72,9 +72,10 @@ Then copy `wp-config-example.php` to `wp-config.php` and start the site.
 
 Paid courses show **Buy now**. Free courses show **Enroll free**.
 
-1. Copy `.env.example` to `.env`
-2. For local demo without credentials: `PAYPAL_MODE=mock`
+1. Copy `.env.example` to `.env` in the WordPress root (same folder as `wp-config.php`)
+2. For local demo without credentials: `PAYPAL_MODE=mock` — the LMS plugin reads this file directly
 3. For real PayPal: set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, and `PAYPAL_MODE=sandbox`
+4. Optional: define the same `PAYPAL_*` constants in `wp-config.php` instead of `.env`
 
 REST:
 - `POST /wp-json/lac-lms/v1/purchase` — mock/local checkout

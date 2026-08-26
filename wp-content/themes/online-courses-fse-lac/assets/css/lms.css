@@ -173,6 +173,122 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	}
 }
 
+/* Contact Us form: matches policy page width and the green pill buttons. */
+.lac-contact-details {
+	margin: 0 0 2rem;
+}
+
+.lac-contact-details__intro {
+	margin: 0 0 0.75rem;
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--lac-heading);
+}
+
+.lac-contact-details__item {
+	margin: 1.35rem 0 0;
+}
+
+.lac-contact-details__item h2 {
+	margin: 0 0 0.35rem;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--lac-heading);
+}
+
+.lac-contact-details__item p {
+	margin: 0;
+	color: var(--lac-ink);
+}
+
+.lac-contact-details__item a {
+	color: var(--lac-heading);
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.lac-contact-details__item a:hover {
+	color: var(--lac-primary);
+}
+.lac-contact-form__email {
+	margin: 0 0 1.25rem;
+}
+
+.lac-contact-form__notice {
+	margin: 0 0 1.25rem;
+	padding: 0.85rem 1rem;
+	border-radius: 12px;
+}
+
+.lac-contact-form__notice.is-success {
+	background: rgba(16, 185, 129, 0.12);
+	color: #065f46;
+}
+
+.lac-contact-form__notice.is-error {
+	background: rgba(185, 28, 28, 0.08);
+	color: #991b1b;
+}
+
+.lac-contact-form {
+	display: grid;
+	gap: 1rem;
+	max-width: 36rem;
+}
+
+.lac-contact-form label {
+	display: grid;
+	gap: 0.4rem;
+	font-weight: 600;
+	color: var(--lac-heading);
+}
+
+.lac-contact-form input,
+.lac-contact-form select,
+.lac-contact-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--lac-line);
+	border-radius: 12px;
+	padding: 0.85rem 1rem;
+	font: inherit;
+	color: var(--lac-ink);
+	background: #fff;
+}
+
+.lac-contact-form textarea {
+	min-height: 9rem;
+	resize: vertical;
+}
+
+.lac-contact-form__hp {
+	position: absolute;
+	left: -9999px;
+	height: 0;
+	overflow: hidden;
+}
+
+.lac-contact-form__submit {
+	appearance: none;
+	-webkit-appearance: none;
+	justify-self: start;
+	border: 0;
+	cursor: pointer;
+	font-family: inherit;
+	font-weight: 600;
+	font-size: 1rem;
+	line-height: 1;
+	padding: 20px 32px;
+	border-radius: 50px;
+	background: var(--lac-primary);
+	color: #fff;
+}
+
+.lac-contact-form__submit:hover,
+.lac-contact-form__submit:focus {
+	background: var(--lac-primary-hover);
+}
+
 .lac-page-head {
 	padding: 2.5rem 0 1.25rem;
 	background: var(--wp--preset--color--background-4, #f1f9f6);
