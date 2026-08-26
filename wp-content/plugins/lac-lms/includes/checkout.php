@@ -267,7 +267,7 @@ function lac_checkout_shortcode() {
 					<li><?php echo esc_html( $price_label ); ?></li>
 				</ul>
 				<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
-					<?php echo esc_html( '← Back to course' ); ?>
+					<?php echo esc_html( '← Back to course details' ); ?>
 				</a>
 			</section>
 			<aside class="lac-checkout__panel">
