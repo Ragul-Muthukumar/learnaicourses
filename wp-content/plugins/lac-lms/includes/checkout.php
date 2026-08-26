@@ -209,15 +209,20 @@ function lac_render_checkout_actions( $course_id ) {
 				</p>
 			<?php else : ?>
 				<p class="lac-checkout__payment-blocked">
-					<?php echo esc_html( sprintf( 'Digital course — $%s. PayPal payment is required before access is granted.', $price_text ) ); ?>
+					<?php echo esc_html( sprintf( 'Checkout for this $%s course is temporarily unavailable.', $price_text ) ); ?>
 				</p>
 				<p class="lac-enroll-hint">
-					<?php echo esc_html( 'Online payment is not configured yet. Add PayPal credentials in wp-config.php (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE=sandbox or live).' ); ?>
+					<?php echo esc_html( 'Please try again later, or contact support if you need help completing your purchase.' ); ?>
 				</p>
 				<p class="lac-enroll-hint">
 					<a href="mailto:fenllinskiii16@gmail.com"><?php echo esc_html( 'Contact support' ); ?></a>
 				</p>
-			<?php endif; ?>
+			<?php
+			 // Log for site owners — never show PayPal setup details on the storefront.
+			if ( function_exists( 'lac_log_error' ) ) {
+				lac_log_error( 'Checkout blocked: PayPal is not configured (set PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE).' );
+			}
+			endif; ?>
 		<?php else : ?>
 			<button type="button" class="lac-enroll-button is-available" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="enroll" data-course_price="0"><span class="lac-enroll-button__label"><?php echo esc_html( 'Complete enrollment' ); ?></span></button>
 			<p class="lac-enroll-message" hidden></p>
