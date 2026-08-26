@@ -383,3 +383,69 @@ function lac_sync_refund_policy_page_if_needed() {
 
  // Run the one-time refund policy sync after WordPress is ready.
 add_action( 'init', 'lac_sync_refund_policy_page_if_needed', 30 );
+
+/**
+ * Replace leftover *@learnaicourses.local emails with the real support inbox.
+ *
+ * @return void
+ */
+function lac_replace_local_emails_in_content_if_needed() {
+	 // Skip when this email cleanup already ran.
+	if ( get_option( 'lac_local_emails_replaced_v1' ) ) {
+		return;
+	}
+	 // Real inbox used on the live site for all public contact addresses.
+	$real_email = 'fenllinskiii16@gmail.com';
+	 // Map every known .local alias to the same real inbox.
+	$local_aliases = array(
+		'privacy@learnaicourses.local',
+		'billing@learnaicourses.local',
+		'legal@learnaicourses.local',
+		'support@learnaicourses.local',
+		'admin@learnaicourses.local',
+	);
+	 // Load published pages that still mention a .local email.
+	$page_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			's'              => '@learnaicourses.local',
+		)
+	);
+	 // Rewrite each matching page body and excerpt.
+	foreach ( $page_ids as $page_id ) {
+		$page_post = get_post( $page_id );
+		if ( ! $page_post ) {
+			continue;
+		}
+		$new_content = $page_post->post_content;
+		$new_excerpt = $page_post->post_excerpt;
+		foreach ( $local_aliases as $local_alias ) {
+			$new_content = str_replace( $local_alias, $real_email, $new_content );
+			$new_excerpt = str_replace( $local_alias, $real_email, $new_excerpt );
+		}
+		 // Persist only when something actually changed.
+		if ( $new_content !== $page_post->post_content || $new_excerpt !== $page_post->post_excerpt ) {
+			wp_update_post(
+				array(
+					'ID'           => (int) $page_id,
+					'post_content' => $new_content,
+					'post_excerpt' => $new_excerpt,
+				)
+			);
+		}
+	}
+	 // Also fix the WordPress admin email option when it still uses .local.
+	$admin_email = get_option( 'admin_email' );
+	if ( is_string( $admin_email ) && false !== strpos( $admin_email, '@learnaicourses.local' ) ) {
+		update_option( 'admin_email', $real_email );
+	}
+	 // Mark complete so we do not rewrite pages on every request.
+	update_option( 'lac_local_emails_replaced_v1', 1, true );
+	lac_log_info( 'Replaced @learnaicourses.local emails with ' . $real_email );
+}
+
+ // Run the one-time .local email cleanup after pages are queryable.
+add_action( 'init', 'lac_replace_local_emails_in_content_if_needed', 31 );
