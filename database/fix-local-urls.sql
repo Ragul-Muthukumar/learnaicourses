@@ -25,3 +25,9 @@ WHERE meta_value LIKE '%learnaicourses.local%';
 UPDATE wc_options
 SET option_value = 'https://learnaicourses.com'
 WHERE option_name IN ('siteurl', 'home');
+
+-- Emails
+UPDATE wc_options SET option_value = REPLACE(option_value, 'fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com') WHERE option_value LIKE '%fenllinskiii16@gmail.com%';
+UPDATE wc_posts SET post_content = REPLACE(post_content, 'fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com') WHERE post_content LIKE '%fenllinskiii16@gmail.com%';
+UPDATE wc_posts SET post_content = REPLACE(post_content, 'fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com') WHERE post_content LIKE '%fenllinskiii16@gmail.com%';
+UPDATE wc_posts SET post_content = REPLACE(post_content, 'fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com') WHERE post_content LIKE '%fenllinskiii16@gmail.com%';
