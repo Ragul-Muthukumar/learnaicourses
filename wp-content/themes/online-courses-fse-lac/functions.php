@@ -647,3 +647,262 @@ function lac_fse_ensure_site_icon() {
 	update_option( 'site_icon', (int) $attachment_id );
 }
 add_action( 'init', 'lac_fse_ensure_site_icon', 20 );
+
+/**
+ * Publish policy pages once so footer links resolve instead of 404.
+ *
+ * Reuses the core Privacy Policy page when it already exists, including
+ * when WordPress left it in draft after setup.
+ *
+ * @return void
+ */
+function lac_fse_ensure_policy_pages() {
+	foreach ( lac_fse_policy_page_definitions() as $page ) {
+		$existing_id = lac_fse_find_policy_page_id( $page['slug'] );
+		if ( $existing_id > 0 ) {
+			if ( 'publish' !== get_post_status( $existing_id ) ) {
+				wp_update_post(
+					array(
+						'ID'          => $existing_id,
+						'post_status' => 'publish',
+					)
+				);
+			}
+			continue;
+		}
+
+		$page_id = wp_insert_post(
+			array(
+				'post_title'   => $page['title'],
+				'post_name'    => $page['slug'],
+				'post_status'  => 'publish',
+				'post_type'    => 'page',
+				'post_content' => $page['content'],
+			)
+		);
+		if ( $page_id > 0 && 'privacy-policy' === $page['slug'] && ! get_option( 'wp_page_for_privacy_policy' ) ) {
+			update_option( 'wp_page_for_privacy_policy', (int) $page_id );
+		}
+	}
+}
+add_action( 'init', 'lac_fse_ensure_policy_pages', 21 );
+
+/**
+ * Find a policy page by slug across published and draft statuses.
+ *
+ * @param string $slug Page slug.
+ * @return int Page id or 0 when missing.
+ */
+function lac_fse_find_policy_page_id( $slug ) {
+	if ( 'privacy-policy' === $slug ) {
+		$privacy_id = (int) get_option( 'wp_page_for_privacy_policy', 0 );
+		if ( $privacy_id > 0 && get_post( $privacy_id ) ) {
+			return $privacy_id;
+		}
+	}
+
+	$existing = get_posts(
+		array(
+			'post_type'              => 'page',
+			'post_status'            => array( 'publish', 'draft', 'pending', 'private' ),
+			'name'                   => $slug,
+			'posts_per_page'         => 1,
+			'fields'                 => 'ids',
+			'suppress_filters'       => true,
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		)
+	);
+
+	return ! empty( $existing ) ? (int) $existing[0] : 0;
+}
+
+/**
+ * Titles, slugs, and Gutenberg content for storefront policy pages.
+ *
+ * @return array<int, array{title:string,slug:string,content:string}>
+ */
+function lac_fse_policy_page_definitions() {
+	return array(
+		array(
+			'title'   => 'Terms & Conditions',
+			'slug'    => 'terms-and-conditions',
+			'content' => lac_fse_terms_page_content(),
+		),
+		array(
+			'title'   => 'Privacy Policy',
+			'slug'    => 'privacy-policy',
+			'content' => lac_fse_privacy_page_content(),
+		),
+		array(
+			'title'   => 'Refund Policy',
+			'slug'    => 'refund-policy',
+			'content' => lac_fse_refund_page_content(),
+		),
+	);
+}
+
+/**
+ * Gutenberg markup for the Terms & Conditions page.
+ *
+ * Written for an individually owned website, not a company or organization.
+ *
+ * @return string
+ */
+function lac_fse_terms_page_content() {
+	return '<!-- wp:paragraph -->
+<p>Learn AI Courses is the name of this website. I own and operate it as an individual person. These terms are an agreement between you and me. They are not an agreement with a company, corporation, or other business entity.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>By browsing the site, creating an account, or buying a course, you agree to this page. If you do not agree, please do not use the site.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Accounts</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>You are responsible for the information you provide at sign-up and for keeping your login details private. One account is for one learner. Please do not share your account or resell course materials.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Courses and access</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>After you enroll, paid and free courses stay in your account unless I have to remove a course for legal or practical reasons. Lesson content, prompts, and downloads are for your personal learning. They are not a license to copy, publish, or sell the curriculum.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Payments</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>The price on a course page is due at checkout. Paid orders are processed through PayPal. A completed payment enrolls you in that course. Refunds, when they apply, follow the <a href="/refund-policy/">Refund Policy</a>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Acceptable use</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Please use the site for learning. Do not try to disrupt it, copy course content at scale, or upload material you do not have the right to share. I may suspend an account that breaks these rules.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Privacy</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>How I handle account and site data is described in the <a href="/privacy-policy/">Privacy Policy</a>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Changes</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>I may update these terms if the catalog or checkout flow changes. The current version is always the one published on this page.</p>
+<!-- /wp:paragraph -->';
+}
+
+/**
+ * Gutenberg markup for the Privacy Policy page.
+ *
+ * Written for an individually owned website, not a company or organization.
+ *
+ * @return string
+ */
+function lac_fse_privacy_page_content() {
+	return '<!-- wp:paragraph -->
+<p>Learn AI Courses is a personal website that I own and operate as an individual. I am not a company or other business entity. This page explains what personal information I collect, why I collect it, and how you can ask about it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">What I collect</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>When you create an account, I store the name, email address, and login details you provide. Course enrollments and lesson progress stay attached to that account so you can return to your courses. I collect only what I need to run accounts, course access, and checkout.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Payments</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Paid checkouts are processed by PayPal. I keep an order record so I can confirm enrollment and handle refunds under the <a href="/refund-policy/">Refund Policy</a>. Card details are handled by PayPal and are not stored on this website.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Cookies</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Login and session cookies keep you signed in and remember display choices. These cookies are needed for the account and checkout flows to work.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">How I use and share information</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>I use your information to operate this website, provide course access, and respond to account or refund requests. I do not sell your personal information. I may share what is needed with PayPal to complete a payment or refund, or if I am required to do so by law.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Your choices</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>You can review and update the profile details on your account. To ask for a copy or deletion of personal data I hold, contact me from the email address on that account. I may keep records I am required to keep for legal, security, or payment reasons. Related rules are in the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>.</p>
+<!-- /wp:paragraph -->';
+}
+
+/**
+ * Gutenberg markup for the Refund Policy page.
+ *
+ * Written for an individually owned website, not a company or organization.
+ *
+ * @return string
+ */
+function lac_fse_refund_page_content() {
+	return '<!-- wp:paragraph -->
+<p>I own and operate Learn AI Courses as an individual. This page explains when I can refund a paid course and how to ask for one. Refunds are handled by me personally, not by a company.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">14-day refund window</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>If you purchased a paid course, you may request a full refund within 14 days of the payment date, provided you have not completed more than two lessons in that course. Free courses have no charge, so they are not eligible for a refund.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">How to request a refund</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Sign in to your account and send me a refund request that includes the course name and the PayPal order or receipt email. I process eligible refunds back to the original payment method. PayPal timing can take several business days after I approve the request.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">When a refund is not available</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>I cannot refund a purchase after the 14-day window, after more than two lessons have been completed, or when access was shared or the content was copied. If you were charged twice for the same course, I will refund the extra payment once I confirm it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2,"fontFamily":"manrope"} -->
+<h2 class="wp-block-heading has-manrope-font-family">Related pages</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Course use is also covered by the <a href="/terms-and-conditions/">Terms &amp; Conditions</a>. Account data is covered by the <a href="/privacy-policy/">Privacy Policy</a>.</p>
+<!-- /wp:paragraph -->';
+}
+

@@ -155,6 +155,24 @@ body.lac-fse-lms .wp-site-blocks > footer.wp-block-template-part {
 	max-width: none;
 }
 
+/* Desktop footer: brand plus three equal menu columns stay aligned. */
+@media (min-width: 782px) {
+	body.lac-fse-lms footer .wp-block-group.is-content-justification-space-between.is-layout-flex {
+		align-items: flex-start;
+		gap: 2rem !important;
+	}
+
+	body.lac-fse-lms footer .footer-logo-column {
+		flex: 1 1 280px;
+		max-width: 360px;
+	}
+
+	body.lac-fse-lms footer .is-content-justification-space-between > .wp-block-group.is-vertical {
+		flex: 1 1 140px;
+		min-width: 140px;
+	}
+}
+
 .lac-page-head {
 	padding: 2.5rem 0 1.25rem;
 	background: var(--wp--preset--color--background-4, #f1f9f6);
@@ -990,7 +1008,7 @@ body.lac-fse-lms video {
 		text-align: left;
 	}
 
-	/* Footer: logo full width, then two link columns. */
+	/* Footer: logo full width, then stacked link columns (Learn, Paths, Policies). */
 	body.lac-fse-lms footer .wp-block-group.is-content-justification-space-between.is-layout-flex {
 		display: grid !important;
 		grid-template-columns: 1fr 1fr;
