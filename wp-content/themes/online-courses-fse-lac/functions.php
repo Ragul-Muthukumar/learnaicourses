@@ -18,16 +18,25 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return void
  */
 function lac_fse_child_enqueue_assets() {
+	 // Parent theme base stylesheet.
 	wp_enqueue_style(
 		'online-courses-fse-parent',
 		get_template_directory_uri() . '/style.css',
 		array(),
 		wp_get_theme( 'online-courses-fse' )->get( 'Version' )
 	);
+	 // Child style.css loads after global styles so font-size overrides win.
+	wp_enqueue_style(
+		'online-courses-fse-lac',
+		get_stylesheet_uri(),
+		array( 'online-courses-fse-parent', 'global-styles' ),
+		wp_get_theme()->get( 'Version' )
+	);
+	 // LMS layout CSS (also re-asserts smaller font presets).
 	wp_enqueue_style(
 		'online-courses-fse-lac-lms',
 		get_stylesheet_directory_uri() . '/assets/css/lms.css',
-		array( 'online-courses-fse-parent', 'online-courses-fse-style' ),
+		array( 'online-courses-fse-parent', 'online-courses-fse-lac' ),
 		wp_get_theme()->get( 'Version' )
 	);
 }

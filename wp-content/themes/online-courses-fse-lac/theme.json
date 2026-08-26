@@ -7,5 +7,91 @@
 			"title": "Learning Path",
 			"postTypes": [ "page" ]
 		}
-	]
+	],
+	"settings": {
+		"typography": {
+			"defaultFontSizes": false,
+			"fluid": true,
+			"fontSizes": [
+				{
+					"fluid": false,
+					"name": "Tiny",
+					"size": "clamp(6.5px, calc(0.4rem + ((1vw - 3.2px) * 0.5)), 11.5px)",
+					"slug": "tiny"
+				},
+				{
+					"fluid": false,
+					"name": "Petite",
+					"size": "clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px)",
+					"slug": "petite"
+				},
+				{
+					"fluid": false,
+					"name": "Small",
+					"size": "clamp(8px, calc(0.5rem + ((1vw - 3.2px) * 0.62)), 14px)",
+					"slug": "small"
+				},
+				{
+					"fluid": {
+						"max": "17px",
+						"min": "14px"
+					},
+					"name": "Regular",
+					"size": "clamp(14px, calc(0.875rem + ((1vw - 3.2px) * 0.65)), 17px)",
+					"slug": "regular"
+				},
+				{
+					"fluid": {
+						"max": "17px",
+						"min": "10px"
+					},
+					"name": "Large",
+					"size": "clamp(10px, calc(0.6rem + ((1vw - 3.2px) * 0.73)), 17px)",
+					"slug": "large"
+				},
+				{
+					"fluid": {
+						"max": "18px",
+						"min": "16px"
+					},
+					"name": "Extra Large",
+					"size": "clamp(16px, calc(1rem + ((1vw - 3.2px) * 0.45)), 18px)",
+					"slug": "extra-large"
+				},
+				{
+					"fluid": {
+						"max": "28px",
+						"min": "16px"
+					},
+					"name": "Huge",
+					"size": "clamp(16px, calc(1rem + ((1vw - 3.2px) * 1.2)), 28px)",
+					"slug": "huge"
+				},
+				{
+					"fluid": {
+						"max": "36px",
+						"min": "21px"
+					},
+					"name": "Gigantic",
+					"size": "clamp(21px, calc(1.3rem + ((1vw - 3.2px) * 1.55)), 36px)",
+					"slug": "gigantic"
+				},
+				{
+					"fluid": {
+						"max": "48px",
+						"min": "27px"
+					},
+					"name": "Colossus",
+					"size": "clamp(27px, calc(1.7rem + ((1vw - 3.2px) * 2.1)), 48px)",
+					"slug": "colossus"
+				},
+				{
+					"fluid": false,
+					"name": "Button",
+					"size": "clamp(9px, calc(0.55rem + ((1vw - 3.2px) * 0.65)), 15px)",
+					"slug": "button"
+				}
+			]
+		}
+	}
 }
