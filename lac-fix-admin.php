@@ -68,7 +68,69 @@ if ( ! $admin_user ) {
 	exit;
 }
 
- // Force administrator role and level 10.
+ // Serialized administrator capability map WordPress expects.
+$admin_caps_value = 'a:1:{s:13:"administrator";b:1;}';
+
+ // Insert or replace capability + level rows (roles were empty on production).
+$existing_caps = $wpdb->get_var(
+	$wpdb->prepare(
+		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1",
+		$admin_user->ID,
+		$cap_key
+	)
+);
+if ( $existing_caps ) {
+	$wpdb->update(
+		$wpdb->usermeta,
+		array( 'meta_value' => $admin_caps_value ),
+		array( 'umeta_id' => (int) $existing_caps ),
+		array( '%s' ),
+		array( '%d' )
+	);
+	echo "Updated existing {$cap_key} row.\n";
+} else {
+	$wpdb->insert(
+		$wpdb->usermeta,
+		array(
+			'user_id'    => $admin_user->ID,
+			'meta_key'   => $cap_key,
+			'meta_value' => $admin_caps_value,
+		),
+		array( '%d', '%s', '%s' )
+	);
+	echo "Inserted new {$cap_key} row.\n";
+}
+
+$existing_level = $wpdb->get_var(
+	$wpdb->prepare(
+		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1",
+		$admin_user->ID,
+		$level_key
+	)
+);
+if ( $existing_level ) {
+	$wpdb->update(
+		$wpdb->usermeta,
+		array( 'meta_value' => '10' ),
+		array( 'umeta_id' => (int) $existing_level ),
+		array( '%s' ),
+		array( '%d' )
+	);
+	echo "Updated existing {$level_key} row.\n";
+} else {
+	$wpdb->insert(
+		$wpdb->usermeta,
+		array(
+			'user_id'    => $admin_user->ID,
+			'meta_key'   => $level_key,
+			'meta_value' => '10',
+		),
+		array( '%d', '%s', '%s' )
+	);
+	echo "Inserted new {$level_key} row.\n";
+}
+
+ // Also use WP APIs so role maps stay consistent.
 $admin_user->set_role( 'administrator' );
 update_user_meta( $admin_user->ID, $level_key, '10' );
 
