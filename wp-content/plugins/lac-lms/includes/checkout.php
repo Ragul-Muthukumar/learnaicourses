@@ -449,3 +449,63 @@ function lac_replace_local_emails_in_content_if_needed() {
 
  // Run the one-time .local email cleanup after pages are queryable.
 add_action( 'init', 'lac_replace_local_emails_in_content_if_needed', 31 );
+
+/**
+ * Remove duplicate Legal & privacy email lines on the Contact page.
+ *
+ * Replacing privacy@ and legal@ .local aliases with one Gmail left two identical mailto links.
+ *
+ * @return void
+ */
+function lac_fix_duplicate_contact_emails_if_needed() {
+	 // Skip when this cleanup already completed.
+	if ( get_option( 'lac_contact_email_deduped_v1' ) ) {
+		return;
+	}
+	 // Find published contact pages by common slugs.
+	$contact_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'name'           => 'contact',
+		)
+	);
+	$contact_us_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'name'           => 'contact-us',
+		)
+	);
+	$page_ids = array_unique( array_merge( $contact_ids, $contact_us_ids ) );
+	 // Collapse duplicated consecutive mailto links to a single address.
+	$duplicate_html = '<a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a><br><a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a>';
+	$single_html    = '<a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a>';
+	foreach ( $page_ids as $page_id ) {
+		$page_post = get_post( $page_id );
+		if ( ! $page_post ) {
+			continue;
+		}
+		$new_content = str_replace( $duplicate_html, $single_html, $page_post->post_content );
+		 // Also repair mangled privacy@gmail composite addresses if present.
+		$new_content = str_replace( 'privacy@fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com', $new_content );
+		if ( $new_content !== $page_post->post_content ) {
+			wp_update_post(
+				array(
+					'ID'           => (int) $page_id,
+					'post_content' => $new_content,
+				)
+			);
+		}
+	}
+	 // Mark complete so the rewrite runs only once.
+	update_option( 'lac_contact_email_deduped_v1', 1, true );
+	lac_log_info( 'Deduped Contact page Legal & privacy email links.' );
+}
+
+ // Run after the .local email replacement so duplicates from that pass are cleaned.
+add_action( 'init', 'lac_fix_duplicate_contact_emails_if_needed', 32 );
