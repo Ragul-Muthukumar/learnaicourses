@@ -146,6 +146,18 @@ function lac_paypal_is_mock_mode() {
 }
 
 /**
+ * Return whether instant / mock purchase (no PayPal charge) is allowed.
+ *
+ * Production must not enroll paid courses without payment. Mock is only for
+ * local demos when PAYPAL_MODE=mock is set explicitly.
+ *
+ * @return bool True when PAYPAL_MODE is mock.
+ */
+function lac_paypal_allows_instant_purchase() {
+	 return lac_paypal_is_mock_mode();
+}
+
+/**
  * Read the PayPal client id from constants, env, or .env.
  *
  * @return string Client id or empty string when unset.

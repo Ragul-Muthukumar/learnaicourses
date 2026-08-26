@@ -587,6 +587,17 @@
 	font-weight: 650;
 }
 
+.lac-checkout__payment-blocked {
+	margin: 0 0 0.75rem;
+	padding: 0.85rem 1rem;
+	border-radius: 0.85rem;
+	background: #fff7ed;
+	border: 1px solid #fdba74;
+	color: #9a3412;
+	font-weight: 650;
+	line-height: 1.45;
+}
+
 .lac-checkout__actions {
 	display: grid;
 	gap: 0.75rem;

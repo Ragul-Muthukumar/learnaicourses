@@ -336,12 +336,12 @@ function lac_rest_paypal_capture_order( WP_REST_Request $request ) {
  * @return WP_REST_Response|WP_Error Result payload or error.
  */
 function lac_rest_purchase_course( WP_REST_Request $request ) {
-	 // Allow mock purchases without credentials, or when PAYPAL_MODE=mock.
-	if ( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) {
+	 // Block free enrollment-style purchases on production; require explicit mock mode.
+	if ( ! lac_paypal_allows_instant_purchase() ) {
 		return new WP_Error(
-			'use_paypal',
-			'Use PayPal checkout for this site.',
-			array( 'status' => 400 )
+			'payment_required',
+			'This course requires PayPal payment. Instant purchase is disabled on this site.',
+			array( 'status' => 402 )
 		);
 	}
 	 // Validate course id and ensure the course is paid.

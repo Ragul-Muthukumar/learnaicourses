@@ -201,14 +201,22 @@ function lac_render_checkout_actions( $course_id ) {
 					<div class="lac-paypal-button-container"></div>
 					<p class="lac-enroll-message" hidden></p>
 				</div>
-			<?php else : ?>
-				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Buy digital course — $%s', $price_text ) ); ?></span></button>
+			<?php elseif ( lac_paypal_allows_instant_purchase() ) : ?>
+				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Buy digital course (demo) — $%s', $price_text ) ); ?></span></button>
 				<p class="lac-enroll-message" hidden></p>
-				<?php if ( ! lac_paypal_is_mock_mode() && ! lac_paypal_is_configured() ) : ?>
-					<p class="lac-enroll-hint">
-						<?php echo esc_html( 'Local checkout mode. Set PAYPAL_MODE=mock or add PayPal credentials in .env.' ); ?>
-					</p>
-				<?php endif; ?>
+				<p class="lac-enroll-hint">
+					<?php echo esc_html( 'Demo / mock mode only. No real payment is charged.' ); ?>
+				</p>
+			<?php else : ?>
+				<p class="lac-checkout__payment-blocked">
+					<?php echo esc_html( sprintf( 'Digital course — $%s. PayPal payment is required before access is granted.', $price_text ) ); ?>
+				</p>
+				<p class="lac-enroll-hint">
+					<?php echo esc_html( 'Online payment is not configured yet. Add PayPal credentials in wp-config.php (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE=sandbox or live).' ); ?>
+				</p>
+				<p class="lac-enroll-hint">
+					<a href="mailto:fenllinskiii16@gmail.com"><?php echo esc_html( 'Contact support' ); ?></a>
+				</p>
 			<?php endif; ?>
 		<?php else : ?>
 			<button type="button" class="lac-enroll-button is-available" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="enroll" data-course_price="0"><span class="lac-enroll-button__label"><?php echo esc_html( 'Complete enrollment' ); ?></span></button>
