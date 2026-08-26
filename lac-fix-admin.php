@@ -4,20 +4,20 @@
  *
  * What this file does:
  * 1) Loads WordPress.
- * 2) Renames lac_capabilities / lac_user_level to wc_* (matches $table_prefix).
- * 3) Forces the admin user to the administrator role.
- * 4) Prints success, then tells you to delete this file.
+ * 2) Renames lac_* role/capability keys to the live wc_* prefix.
+ * 3) Ensures wc_user_roles exists (required for administrator to work).
+ * 4) Forces user "admin" (id 1) to administrator and verifies manage_options.
  *
  * How to use:
- * 1) Upload this file to the WordPress root (same folder as wp-config.php).
- * 2) Visit: https://learnaicourses.com/lac-fix-admin.php
- * 3) Delete this file from File Manager immediately after it succeeds.
+ * 1) Upload to WordPress root (same folder as wp-config.php).
+ * 2) Visit: https://learnaicourses.com/lac-fix-admin.php?key=learnaifix2026
+ * 3) Delete this file immediately after SUCCESS.
  */
 
- // Load WordPress core from the site root.
+ // Load WordPress from the site root.
 require __DIR__ . '/wp-load.php';
 
- // Only allow this script when run in a browser with a secret query key.
+ // Require a simple secret so the script is not public.
 $secret_key = isset( $_GET['key'] ) ? (string) $_GET['key'] : '';
 if ( 'learnaifix2026' !== $secret_key ) {
 	status_header( 403 );
@@ -28,24 +28,54 @@ if ( 'learnaifix2026' !== $secret_key ) {
 
 global $wpdb;
 
- // Detect the active table prefix from wp-config.
+header( 'Content-Type: text/plain; charset=utf-8' );
+
 $table_prefix = $wpdb->prefix;
 $cap_key      = $table_prefix . 'capabilities';
 $level_key    = $table_prefix . 'user_level';
+$roles_key    = $table_prefix . 'user_roles';
 
-header( 'Content-Type: text/plain; charset=utf-8' );
 echo "Table prefix: {$table_prefix}\n";
-echo "Looking for capability key: {$cap_key}\n\n";
+echo "Capability key: {$cap_key}\n";
+echo "Roles option key: {$roles_key}\n\n";
 
- // Rename wrong local-prefix capability keys to the live prefix.
-$renamed_caps = $wpdb->query(
+ // Rename leftover local-prefix role option to the live prefix.
+$renamed_roles_option = $wpdb->query(
+	$wpdb->prepare(
+		"UPDATE {$wpdb->options} SET option_name = %s WHERE option_name = %s",
+		$roles_key,
+		'lac_user_roles'
+	)
+);
+echo 'Renamed lac_user_roles option rows: ' . ( false === $renamed_roles_option ? 'ERROR' : (string) $renamed_roles_option ) . "\n";
+
+ // If wc_user_roles is still missing, rebuild default WordPress roles.
+$roles_option = get_option( $roles_key );
+if ( empty( $roles_option ) || ! is_array( $roles_option ) || empty( $roles_option['administrator'] ) ) {
+	require_once ABSPATH . 'wp-admin/includes/schema.php';
+	 // populate_roles() writes {$wpdb->prefix}user_roles.
+	if ( function_exists( 'populate_roles' ) ) {
+		populate_roles();
+		echo "Ran populate_roles() to rebuild {$roles_key}.\n";
+	} else {
+		echo "ERROR: populate_roles() not available.\n";
+	}
+	 // Clear option cache after DB write.
+	wp_cache_delete( $roles_key, 'options' );
+	wp_cache_delete( 'alloptions', 'options' );
+} else {
+	echo "{$roles_key} already present with administrator role.\n";
+}
+
+ // Rename wrong capability meta keys if any remain.
+$wpdb->query(
 	$wpdb->prepare(
 		"UPDATE {$wpdb->usermeta} SET meta_key = %s WHERE meta_key = %s",
 		$cap_key,
 		'lac_capabilities'
 	)
 );
-$renamed_level = $wpdb->query(
+$wpdb->query(
 	$wpdb->prepare(
 		"UPDATE {$wpdb->usermeta} SET meta_key = %s WHERE meta_key = %s",
 		$level_key,
@@ -53,107 +83,94 @@ $renamed_level = $wpdb->query(
 	)
 );
 
-echo 'Renamed lac_capabilities rows: ' . ( false === $renamed_caps ? 'ERROR' : (string) $renamed_caps ) . "\n";
-echo 'Renamed lac_user_level rows: ' . ( false === $renamed_level ? 'ERROR' : (string) $renamed_level ) . "\n";
-
- // Load the admin account by login name.
+ // Resolve the admin user.
 $admin_user = get_user_by( 'login', 'admin' );
 if ( ! $admin_user ) {
-	 // Fall back to user id 1 when the login name differs.
 	$admin_user = get_user_by( 'id', 1 );
 }
-
 if ( ! $admin_user ) {
-	echo "ERROR: Could not find user 'admin' or user id 1.\n";
+	echo "ERROR: Could not find user admin / id 1.\n";
 	exit;
 }
 
- // Serialized administrator capability map WordPress expects.
-$admin_caps_value = 'a:1:{s:13:"administrator";b:1;}';
-
- // Insert or replace capability + level rows (roles were empty on production).
-$existing_caps = $wpdb->get_var(
+ // Remove every capabilities/level variant so only the correct keys remain.
+$wpdb->query(
 	$wpdb->prepare(
-		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1",
+		"DELETE FROM {$wpdb->usermeta}
+		WHERE user_id = %d
+		AND meta_key IN (
+			'wc_capabilities','wc_user_level',
+			'lac_capabilities','lac_user_level',
+			'wp_capabilities','wp_user_level',
+			%s, %s
+		)",
 		$admin_user->ID,
-		$cap_key
-	)
-);
-if ( $existing_caps ) {
-	$wpdb->update(
-		$wpdb->usermeta,
-		array( 'meta_value' => $admin_caps_value ),
-		array( 'umeta_id' => (int) $existing_caps ),
-		array( '%s' ),
-		array( '%d' )
-	);
-	echo "Updated existing {$cap_key} row.\n";
-} else {
-	$wpdb->insert(
-		$wpdb->usermeta,
-		array(
-			'user_id'    => $admin_user->ID,
-			'meta_key'   => $cap_key,
-			'meta_value' => $admin_caps_value,
-		),
-		array( '%d', '%s', '%s' )
-	);
-	echo "Inserted new {$cap_key} row.\n";
-}
-
-$existing_level = $wpdb->get_var(
-	$wpdb->prepare(
-		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1",
-		$admin_user->ID,
+		$cap_key,
 		$level_key
 	)
 );
-if ( $existing_level ) {
-	$wpdb->update(
-		$wpdb->usermeta,
-		array( 'meta_value' => '10' ),
-		array( 'umeta_id' => (int) $existing_level ),
-		array( '%s' ),
-		array( '%d' )
-	);
-	echo "Updated existing {$level_key} row.\n";
-} else {
-	$wpdb->insert(
-		$wpdb->usermeta,
-		array(
-			'user_id'    => $admin_user->ID,
-			'meta_key'   => $level_key,
-			'meta_value' => '10',
-		),
-		array( '%d', '%s', '%s' )
-	);
-	echo "Inserted new {$level_key} row.\n";
-}
 
- // Also use WP APIs so role maps stay consistent.
-$admin_user->set_role( 'administrator' );
-update_user_meta( $admin_user->ID, $level_key, '10' );
+ // Insert clean administrator capability rows.
+$admin_caps_value = serialize( array( 'administrator' => true ) );
+$wpdb->insert(
+	$wpdb->usermeta,
+	array(
+		'user_id'    => $admin_user->ID,
+		'meta_key'   => $cap_key,
+		'meta_value' => $admin_caps_value,
+	),
+	array( '%d', '%s', '%s' )
+);
+$wpdb->insert(
+	$wpdb->usermeta,
+	array(
+		'user_id'    => $admin_user->ID,
+		'meta_key'   => $level_key,
+		'meta_value' => '10',
+	),
+	array( '%d', '%s', '%s' )
+);
+echo "Inserted clean {$cap_key} and {$level_key}.\n";
 
- // Clear caches that can keep an old capability map in memory.
+ // Flush user caches, then set role through WordPress APIs.
 wp_cache_delete( $admin_user->ID, 'users' );
 wp_cache_delete( $admin_user->ID, 'user_meta' );
 clean_user_cache( $admin_user->ID );
 
- // Re-read capabilities to confirm.
+$admin_user = new WP_User( $admin_user->ID );
+$admin_user->set_role( 'administrator' );
+
+ // Re-check after role assignment.
+wp_cache_delete( $admin_user->ID, 'users' );
+wp_cache_delete( $admin_user->ID, 'user_meta' );
+clean_user_cache( $admin_user->ID );
 $fresh_user = new WP_User( $admin_user->ID );
 $is_admin   = user_can( $fresh_user, 'manage_options' );
 
-echo 'User id: ' . (string) $admin_user->ID . "\n";
-echo 'User login: ' . $admin_user->user_login . "\n";
+ // Debug dump of capability meta + roles option presence.
+$cap_row = $wpdb->get_row(
+	$wpdb->prepare(
+		"SELECT meta_key, meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s",
+		$fresh_user->ID,
+		$cap_key
+	)
+);
+$roles_now = get_option( $roles_key );
+
+echo 'User id: ' . (string) $fresh_user->ID . "\n";
+echo 'User login: ' . $fresh_user->user_login . "\n";
 echo 'Roles: ' . implode( ', ', $fresh_user->roles ) . "\n";
-echo 'Can manage_options: ' . ( $is_admin ? 'YES' : 'NO' ) . "\n\n";
+echo 'Can manage_options: ' . ( $is_admin ? 'YES' : 'NO' ) . "\n";
+echo 'Cap meta_value: ' . ( $cap_row ? $cap_row->meta_value : '(missing)' ) . "\n";
+echo 'Roles option has administrator: ' . ( is_array( $roles_now ) && isset( $roles_now['administrator'] ) ? 'YES' : 'NO' ) . "\n\n";
 
 if ( $is_admin ) {
-	echo "SUCCESS. Now:\n";
-	echo "1) DELETE this file (lac-fix-admin.php) from File Manager.\n";
-	echo "2) Log out, then open https://learnaicourses.com/wp-login.php\n";
-	echo "3) Log in as admin, then open https://learnaicourses.com/wp-admin/\n";
+	echo "SUCCESS.\n";
+	echo "1) DELETE lac-fix-admin.php from File Manager now.\n";
+	echo "2) Log out completely.\n";
+	echo "3) Log in at https://learnaicourses.com/wp-login.php as admin\n";
+	echo "4) Open https://learnaicourses.com/wp-admin/\n";
 } else {
-	echo "FAILED. In phpMyAdmin run:\n";
-	echo "SELECT user_id, meta_key, meta_value FROM {$table_prefix}usermeta WHERE meta_key LIKE '%capabilities%';\n";
+	echo "FAILED. Run this SQL in phpMyAdmin and re-open this URL:\n";
+	echo "UPDATE {$wpdb->options} SET option_name = '{$roles_key}' WHERE option_name = 'lac_user_roles';\n";
 }
