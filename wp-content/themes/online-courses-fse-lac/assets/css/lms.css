@@ -30,17 +30,17 @@
 	--lac-primary: #10b981;
 	--lac-primary-hover: #0d9669;
 	--lac-heading: #111827;
-	/* Match child theme.json — shrink FSE presets (~12–15%) sitewide. */
-	--wp--preset--font-size--tiny: clamp(6.5px, calc(0.4rem + ((1vw - 3.2px) * 0.5)), 11.5px);
-	--wp--preset--font-size--petite: clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px);
-	--wp--preset--font-size--small: clamp(8px, calc(0.5rem + ((1vw - 3.2px) * 0.62)), 14px);
-	--wp--preset--font-size--regular: clamp(14px, calc(0.875rem + ((1vw - 3.2px) * 0.65)), 17px);
-	--wp--preset--font-size--large: clamp(10px, calc(0.6rem + ((1vw - 3.2px) * 0.73)), 17px);
-	--wp--preset--font-size--extra-large: clamp(16px, calc(1rem + ((1vw - 3.2px) * 0.45)), 18px);
-	--wp--preset--font-size--huge: clamp(16px, calc(1rem + ((1vw - 3.2px) * 1.2)), 28px);
-	--wp--preset--font-size--gigantic: clamp(21px, calc(1.3rem + ((1vw - 3.2px) * 1.55)), 36px);
-	--wp--preset--font-size--colossus: clamp(27px, calc(1.7rem + ((1vw - 3.2px) * 2.1)), 48px);
-	--wp--preset--font-size--button: clamp(9px, calc(0.55rem + ((1vw - 3.2px) * 0.65)), 15px);
+	/* Match child theme.json — slightly smaller FSE presets sitewide. */
+	--wp--preset--font-size--tiny: clamp(6px, calc(0.38rem + ((1vw - 3.2px) * 0.48)), 11px);
+	--wp--preset--font-size--petite: clamp(7px, calc(0.44rem + ((1vw - 3.2px) * 0.55)), 12.5px);
+	--wp--preset--font-size--small: clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px);
+	--wp--preset--font-size--regular: clamp(13px, calc(0.81rem + ((1vw - 3.2px) * 0.6)), 16px);
+	--wp--preset--font-size--large: clamp(9.5px, calc(0.56rem + ((1vw - 3.2px) * 0.68)), 16px);
+	--wp--preset--font-size--extra-large: clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 0.42)), 17px);
+	--wp--preset--font-size--huge: clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 1.1)), 26px);
+	--wp--preset--font-size--gigantic: clamp(19px, calc(1.2rem + ((1vw - 3.2px) * 1.4)), 33px);
+	--wp--preset--font-size--colossus: clamp(24px, calc(1.5rem + ((1vw - 3.2px) * 1.9)), 44px);
+	--wp--preset--font-size--button: clamp(8.5px, calc(0.52rem + ((1vw - 3.2px) * 0.6)), 14px);
 }
 
 body.lac-fse-lms {
@@ -67,7 +67,7 @@ body.lac-fse-lms {
 .lac-lesson h1 {
 	margin: 0 0 0.75rem;
 	color: var(--lac-heading);
-	font-size: clamp(1.65rem, 2.7vw, 2.25rem);
+	font-size: clamp(1.5rem, 2.5vw, 2.05rem);
 	line-height: 1.2;
 	font-weight: 800;
 }
@@ -579,7 +579,7 @@ body.lac-fse-lms .lac-checkout__eyebrow {
 
 body.lac-fse-lms .lac-checkout__title {
 	color: var(--lac-heading);
-	font-size: clamp(1.65rem, 2.7vw, 2.25rem);
+	font-size: clamp(1.5rem, 2.5vw, 2.05rem);
 	font-weight: 800;
 }
 

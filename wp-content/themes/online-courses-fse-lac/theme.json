@@ -16,79 +16,79 @@
 				{
 					"fluid": false,
 					"name": "Tiny",
-					"size": "clamp(6.5px, calc(0.4rem + ((1vw - 3.2px) * 0.5)), 11.5px)",
+					"size": "clamp(6px, calc(0.38rem + ((1vw - 3.2px) * 0.48)), 11px)",
 					"slug": "tiny"
 				},
 				{
 					"fluid": false,
 					"name": "Petite",
-					"size": "clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px)",
+					"size": "clamp(7px, calc(0.44rem + ((1vw - 3.2px) * 0.55)), 12.5px)",
 					"slug": "petite"
 				},
 				{
 					"fluid": false,
 					"name": "Small",
-					"size": "clamp(8px, calc(0.5rem + ((1vw - 3.2px) * 0.62)), 14px)",
+					"size": "clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px)",
 					"slug": "small"
 				},
 				{
 					"fluid": {
-						"max": "17px",
-						"min": "14px"
+						"max": "16px",
+						"min": "13px"
 					},
 					"name": "Regular",
-					"size": "clamp(14px, calc(0.875rem + ((1vw - 3.2px) * 0.65)), 17px)",
+					"size": "clamp(13px, calc(0.81rem + ((1vw - 3.2px) * 0.6)), 16px)",
 					"slug": "regular"
 				},
 				{
 					"fluid": {
-						"max": "17px",
-						"min": "10px"
+						"max": "16px",
+						"min": "9.5px"
 					},
 					"name": "Large",
-					"size": "clamp(10px, calc(0.6rem + ((1vw - 3.2px) * 0.73)), 17px)",
+					"size": "clamp(9.5px, calc(0.56rem + ((1vw - 3.2px) * 0.68)), 16px)",
 					"slug": "large"
 				},
 				{
 					"fluid": {
-						"max": "18px",
-						"min": "16px"
+						"max": "17px",
+						"min": "15px"
 					},
 					"name": "Extra Large",
-					"size": "clamp(16px, calc(1rem + ((1vw - 3.2px) * 0.45)), 18px)",
+					"size": "clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 0.42)), 17px)",
 					"slug": "extra-large"
 				},
 				{
 					"fluid": {
-						"max": "28px",
-						"min": "16px"
+						"max": "26px",
+						"min": "15px"
 					},
 					"name": "Huge",
-					"size": "clamp(16px, calc(1rem + ((1vw - 3.2px) * 1.2)), 28px)",
+					"size": "clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 1.1)), 26px)",
 					"slug": "huge"
 				},
 				{
 					"fluid": {
-						"max": "36px",
-						"min": "21px"
+						"max": "33px",
+						"min": "19px"
 					},
 					"name": "Gigantic",
-					"size": "clamp(21px, calc(1.3rem + ((1vw - 3.2px) * 1.55)), 36px)",
+					"size": "clamp(19px, calc(1.2rem + ((1vw - 3.2px) * 1.4)), 33px)",
 					"slug": "gigantic"
 				},
 				{
 					"fluid": {
-						"max": "48px",
-						"min": "27px"
+						"max": "44px",
+						"min": "24px"
 					},
 					"name": "Colossus",
-					"size": "clamp(27px, calc(1.7rem + ((1vw - 3.2px) * 2.1)), 48px)",
+					"size": "clamp(24px, calc(1.5rem + ((1vw - 3.2px) * 1.9)), 44px)",
 					"slug": "colossus"
 				},
 				{
 					"fluid": false,
 					"name": "Button",
-					"size": "clamp(9px, calc(0.55rem + ((1vw - 3.2px) * 0.65)), 15px)",
+					"size": "clamp(8.5px, calc(0.52rem + ((1vw - 3.2px) * 0.6)), 14px)",
 					"slug": "button"
 				}
 			]
