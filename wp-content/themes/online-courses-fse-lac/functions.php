@@ -33,11 +33,12 @@ function lac_fse_child_enqueue_assets() {
 		wp_get_theme()->get( 'Version' )
 	);
 	 // LMS layout CSS (also re-asserts smaller font presets).
+	$lms_css = get_stylesheet_directory() . '/assets/css/lms.css';
 	wp_enqueue_style(
 		'online-courses-fse-lac-lms',
 		get_stylesheet_directory_uri() . '/assets/css/lms.css',
 		array( 'online-courses-fse-parent', 'online-courses-fse-lac' ),
-		wp_get_theme()->get( 'Version' )
+		is_readable( $lms_css ) ? (string) filemtime( $lms_css ) : wp_get_theme()->get( 'Version' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'lac_fse_child_enqueue_assets', 20 );
@@ -109,6 +110,9 @@ function lac_fse_child_body_class( $classes ) {
 	$checkout_page_id = function_exists( 'lac_get_checkout_page_id' ) ? lac_get_checkout_page_id() : 0;
 	if ( is_page( 'checkout' ) || ( $checkout_page_id > 0 && is_page( $checkout_page_id ) ) ) {
 		$classes[] = 'lac-is-checkout';
+	}
+	if ( function_exists( 'lac_is_bingeme_checkout' ) && lac_is_bingeme_checkout() ) {
+		$classes[] = 'lac-is-bingeme-checkout';
 	}
 	return $classes;
 }

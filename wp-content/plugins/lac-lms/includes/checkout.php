@@ -359,12 +359,13 @@ function lac_checkout_shortcode() {
 	$course_level  = get_post_meta( $course_id, '_lac_course_level', true );
 	$course_hours  = get_post_meta( $course_id, '_lac_course_hours', true );
 	$course_price  = lac_get_effective_checkout_price( $course_id );
+	$is_bg_checkout = lac_is_bingeme_checkout();
 	$thumbnail_url = get_the_post_thumbnail_url( $course_id, 'large' );
 	$price_label   = $course_price > 0 ? '$' . number_format( $course_price, 2 ) : 'Free';
 	 // Build the checkout layout with summary and actions.
 	ob_start();
 	?>
-	<div class="lac-checkout">
+	<div class="lac-checkout<?php echo $is_bg_checkout ? ' lac-checkout--bingeme' : ''; ?>">
 		<div class="lac-checkout__grid">
 			<section class="lac-checkout__summary">
 				<p class="lac-checkout__eyebrow"><?php echo esc_html( 'Checkout' ); ?></p>
@@ -375,9 +376,15 @@ function lac_checkout_shortcode() {
 					<li><?php echo esc_html( $course_hours ? $course_hours . ' hours' : 'Self-paced' ); ?></li>
 					<li><?php echo esc_html( $price_label ); ?></li>
 				</ul>
-				<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
-					<?php echo esc_html( '← Back to course details' ); ?>
-				</a>
+				<?php if ( $is_bg_checkout ) : ?>
+					<a class="lac-checkout__back lac-checkout__back--bingeme" href="<?php echo esc_url( lac_get_bingeme_return_url() ); ?>">
+						<?php echo esc_html( '← Return to account' ); ?>
+					</a>
+				<?php else : ?>
+					<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
+						<?php echo esc_html( '← Back to course details' ); ?>
+					</a>
+				<?php endif; ?>
 			</section>
 			<aside class="lac-checkout__panel">
 				<?php if ( $thumbnail_url ) : ?>
