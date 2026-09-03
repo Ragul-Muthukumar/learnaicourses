@@ -28,6 +28,83 @@ function lac_get_checkout_page_id() {
 }
 
 /**
+ * Read the Bingeme deposit cookie set by bgcheckout.
+ *
+ * @return array<string,mixed>
+ */
+function lac_get_bingeme_session() {
+	if ( function_exists( 'bg_get_cart_session' ) ) {
+		return bg_get_cart_session();
+	}
+	if ( empty( $_COOKIE['bg_cart_data'] ) ) {
+		return array();
+	}
+	$data = maybe_unserialize( wp_unslash( $_COOKIE['bg_cart_data'] ) );
+	return is_array( $data ) ? $data : array();
+}
+
+/**
+ * Whether the current checkout is a Bingeme deposit payment via LMS UI.
+ *
+ * @return bool
+ */
+function lac_is_bingeme_checkout() {
+	if ( function_exists( 'bg_is_lms_checkout_session' ) && bg_is_lms_checkout_session() ) {
+		return true;
+	}
+	$session = lac_get_bingeme_session();
+	return ! empty( $session['lms'] ) && ! empty( $session['id'] ) && isset( $session['amount'] ) && (float) $session['amount'] > 0;
+}
+
+/**
+ * Amount to charge: Bingeme txn amount when present, otherwise course catalog price.
+ *
+ * @param int $course_id Course post id.
+ * @return float
+ */
+function lac_get_effective_checkout_price( $course_id ) {
+	if ( lac_is_bingeme_checkout() ) {
+		$session = lac_get_bingeme_session();
+		return max( 0, (float) $session['amount'] );
+	}
+	return function_exists( 'lac_get_course_price' ) ? lac_get_course_price( $course_id ) : 0;
+}
+
+/**
+ * Post-payment return URL for Bingeme deposits.
+ *
+ * @return string
+ */
+function lac_get_bingeme_return_url() {
+	$session = lac_get_bingeme_session();
+	if ( ! empty( $session['url'] ) && is_string( $session['url'] ) ) {
+		return $session['url'];
+	}
+	return home_url( '/' );
+}
+
+/**
+ * Mark the Bingeme deposit active after successful LMS PayPal payment.
+ *
+ * @param string $paypal_txn_id Optional PayPal capture / transaction id.
+ * @return bool
+ */
+function lac_complete_bingeme_deposit( $paypal_txn_id = '' ) {
+	if ( ! lac_is_bingeme_checkout() || ! function_exists( 'update_bg_deposit' ) ) {
+		return false;
+	}
+	$session = lac_get_bingeme_session();
+	$data    = array(
+		'id' => $session['id'],
+	);
+	if ( '' !== $paypal_txn_id ) {
+		$data['paypal_txn_id'] = sanitize_text_field( $paypal_txn_id );
+	}
+	update_bg_deposit( 'active', $data );
+	return true;
+}
+
+/**
  * Create the checkout page once when it is missing or trashed.
  *
  * @return int Checkout page id or 0 on failure.
@@ -164,18 +241,19 @@ function lac_get_continue_learning_url( $course_id ) {
 function lac_render_checkout_actions( $course_id ) {
 	 // Encrypt the course id for REST requests from the checkout page.
 	$encrypted_course_id = lac_encrypt_id( $course_id );
-	 // Read pricing to decide between free enroll and paid checkout.
-	$course_price = lac_get_course_price( $course_id );
+	 // Bingeme deposits reuse this UI but charge the txn amount, not catalog price.
+	$is_bg_checkout = lac_is_bingeme_checkout();
+	$course_price   = lac_get_effective_checkout_price( $course_id );
 	 // Start output buffering for the action panel markup.
 	ob_start();
 	?>
-	<div class="lac-checkout__actions" data-lac-checkout-actions="1" data-continue_url="<?php echo esc_attr( lac_get_continue_learning_url( $course_id ) ); ?>">
+	<div class="lac-checkout__actions" data-lac-checkout-actions="1" data-continue_url="<?php echo esc_attr( $is_bg_checkout ? lac_get_bingeme_return_url() : lac_get_continue_learning_url( $course_id ) ); ?>">
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<a class="lac-enroll-button lac-enroll-link is-login" href="<?php echo esc_url( wp_login_url( lac_get_checkout_url_for_course( $course_id ) ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Sign in to continue' ); ?></span></a>
 			<p class="lac-enroll-hint">
 				<?php echo esc_html( 'You need an account before enrolling or purchasing a course.' ); ?>
 			</p>
-		<?php elseif ( lac_db_is_user_enrolled( get_current_user_id(), $course_id ) ) : ?>
+		<?php elseif ( ! $is_bg_checkout && lac_db_is_user_enrolled( get_current_user_id(), $course_id ) ) : ?>
 			<a class="lac-enroll-button lac-enroll-link is-enrolled" href="<?php echo esc_url( lac_get_continue_learning_url( $course_id ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( 'Continue learning' ); ?></span></a>
 			<p class="lac-enroll-message">
 				<?php echo esc_html( 'You are already enrolled in this course.' ); ?>
@@ -244,17 +322,12 @@ function lac_checkout_shortcode() {
 	$course_id = lac_resolve_course_id_from_slug( $course_slug );
 	 // Show guidance when the URL is missing or invalid.
 	if ( $course_id < 1 ) {
-		// Bingeme / WooCommerce deposit carts land on the same checkout URL without ?course=.
-		// When a WC cart has items, render WooCommerce checkout instead of the LMS empty state.
-		if ( function_exists( 'WC' ) && WC()->cart && ! WC()->cart->is_empty() && shortcode_exists( 'woocommerce_checkout' ) ) {
-			return '<div class="woocommerce lac-wc-deposit-checkout">' . do_shortcode( '[woocommerce_checkout]' ) . '</div>';
-		}
 		return '<div class="lac-checkout lac-checkout--empty"><p>' . esc_html( 'Choose a course to enroll or purchase, then return to checkout.' ) . ' <a href="' . esc_url( get_post_type_archive_link( 'lac_course' ) ) . '">' . esc_html( 'Browse courses' ) . '</a></p></div>';
 	}
 	 // Load course meta used in the checkout summary card.
 	$course_level  = get_post_meta( $course_id, '_lac_course_level', true );
 	$course_hours  = get_post_meta( $course_id, '_lac_course_hours', true );
-	$course_price  = lac_get_course_price( $course_id );
+	$course_price  = lac_get_effective_checkout_price( $course_id );
 	$thumbnail_url = get_the_post_thumbnail_url( $course_id, 'large' );
 	$price_label   = $course_price > 0 ? '$' . number_format( $course_price, 2 ) : 'Free';
 	 // Build the checkout layout with summary and actions.

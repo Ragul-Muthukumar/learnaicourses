@@ -106,13 +106,16 @@ function lac_validate_paypal_create_request( $request_data ) {
 	if ( is_wp_error( $base ) ) {
 		return $base;
 	}
-	 // Require a positive price so free courses use the enroll endpoint.
-	$course_price = lac_get_course_price( $base['course_id'] );
+	 // Bingeme deposits charge the txn amount; normal checkouts use catalog price.
+	$course_price = function_exists( 'lac_get_effective_checkout_price' )
+		? lac_get_effective_checkout_price( $base['course_id'] )
+		: lac_get_course_price( $base['course_id'] );
 	if ( $course_price <= 0 ) {
 		return new WP_Error( 'course_is_free', 'This course is free — use enroll instead.', array( 'status' => 400 ) );
 	}
 	 // Attach the resolved price for the order insert.
 	$base['course_price'] = $course_price;
+	$base['is_bingeme']   = function_exists( 'lac_is_bingeme_checkout' ) && lac_is_bingeme_checkout();
 	 // Hand the clean payload back to the REST controller.
 	return $base;
 }

@@ -216,9 +216,10 @@ function lac_rest_paypal_create_order( WP_REST_Request $request ) {
 		return $validated;
 	}
 	 // Capture the purchasing learner id.
-	$user_id = get_current_user_id();
-	 // Skip checkout when the learner is already enrolled.
-	if ( lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
+	$user_id     = get_current_user_id();
+	$is_bingeme  = ! empty( $validated['is_bingeme'] );
+	 // Skip checkout when the learner is already enrolled (not for Bingeme deposits).
+	if ( ! $is_bingeme && lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
 		return rest_ensure_response(
 			lac_rest_enrollment_payload(
 				$validated['course_id'],
@@ -237,7 +238,7 @@ function lac_rest_paypal_create_order( WP_REST_Request $request ) {
 	if ( false === $local_order_id ) {
 		return new WP_Error( 'order_create_failed', 'Could not create a local order.', array( 'status' => 500 ) );
 	}
-	 // Create the remote PayPal order for the course amount.
+	 // Create the remote PayPal order for the course / deposit amount.
 	$paypal_order = lac_paypal_create_order(
 		$local_order_id,
 		get_the_title( $validated['course_id'] ),
@@ -310,6 +311,23 @@ function lac_rest_paypal_capture_order( WP_REST_Request $request ) {
 	$capture_id = lac_paypal_extract_capture_id( $capture_payload );
 	 // Mark the local order completed with the capture reference.
 	lac_db_complete_order( (int) $order_row->id, $capture_id );
+
+	$is_bingeme = function_exists( 'lac_is_bingeme_checkout' ) && lac_is_bingeme_checkout();
+	if ( $is_bingeme ) {
+		if ( function_exists( 'lac_complete_bingeme_deposit' ) ) {
+			lac_complete_bingeme_deposit( $capture_id );
+		}
+		lac_log_info( 'Bingeme LMS PayPal purchase completed for local order ' . absint( $order_row->id ) );
+		return rest_ensure_response(
+			array(
+				'status'       => 'paid',
+				'message'      => 'Payment successful. Returning to your account…',
+				'course_id'    => lac_encrypt_id( (int) $order_row->course_id ),
+				'continue_url' => function_exists( 'lac_get_bingeme_return_url' ) ? lac_get_bingeme_return_url() : home_url( '/' ),
+			)
+		);
+	}
+
 	 // Enroll the learner when not already enrolled.
 	if ( ! lac_db_is_user_enrolled( $user_id, (int) $order_row->course_id ) ) {
 		$insert_id = lac_db_insert_enrollment( $user_id, (int) $order_row->course_id );
@@ -350,9 +368,10 @@ function lac_rest_purchase_course( WP_REST_Request $request ) {
 		return $validated;
 	}
 	 // Capture the purchasing learner id.
-	$user_id = get_current_user_id();
-	 // Skip checkout when the learner is already enrolled.
-	if ( lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
+	$user_id    = get_current_user_id();
+	$is_bingeme = ! empty( $validated['is_bingeme'] );
+	 // Skip checkout when the learner is already enrolled (not for Bingeme deposits).
+	if ( ! $is_bingeme && lac_db_is_user_enrolled( $user_id, $validated['course_id'] ) ) {
 		return rest_ensure_response(
 			lac_rest_enrollment_payload(
 				$validated['course_id'],
@@ -375,7 +394,24 @@ function lac_rest_purchase_course( WP_REST_Request $request ) {
 	$mock_paypal_id = 'MOCK-' . absint( $local_order_id ) . '-' . time();
 	lac_db_set_order_paypal_id( $local_order_id, $mock_paypal_id );
 	 // Mark the order completed with a mock capture id.
-	lac_db_complete_order( $local_order_id, 'MOCK-CAPTURE-' . absint( $local_order_id ) );
+	$mock_capture = 'MOCK-CAPTURE-' . absint( $local_order_id );
+	lac_db_complete_order( $local_order_id, $mock_capture );
+
+	if ( $is_bingeme ) {
+		if ( function_exists( 'lac_complete_bingeme_deposit' ) ) {
+			lac_complete_bingeme_deposit( $mock_capture );
+		}
+		lac_log_info( 'Mock Bingeme purchase completed for local order ' . absint( $local_order_id ) );
+		return rest_ensure_response(
+			array(
+				'status'       => 'paid',
+				'message'      => 'Payment successful. Returning to your account…',
+				'course_id'    => lac_encrypt_id( $validated['course_id'] ),
+				'continue_url' => function_exists( 'lac_get_bingeme_return_url' ) ? lac_get_bingeme_return_url() : home_url( '/' ),
+			)
+		);
+	}
+
 	 // Enroll the learner after the mock payment succeeds.
 	$insert_id = lac_db_insert_enrollment( $user_id, $validated['course_id'] );
 	if ( false === $insert_id ) {

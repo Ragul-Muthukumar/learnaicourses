@@ -75,11 +75,11 @@ function bg_checkout_define_constants() {
 		define( 'BGCHECKOUT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 	}
 	$defaults = array(
-		'BG_API_URL'       => '',
-		'BG_API_KEY'       => '',
-		'BG_ENV'           => 'local',
-		'BG_COOKIE'        => '',
-		'BG_USER_PASSWORD' => 'ChangeMeBgUser',
+		'BG_API_URL'         => '',
+		'BG_API_KEY'         => '',
+		'BG_ENV'             => 'local',
+		'BG_COOKIE'          => '',
+		'BG_USER_PASSWORD'   => 'ChangeMeBgUser',
 	);
 	foreach ( $defaults as $name => $fallback ) {
 		if ( ! defined( $name ) ) {
@@ -90,129 +90,78 @@ function bg_checkout_define_constants() {
 }
 bg_checkout_define_constants();
 
-add_action( 'woocommerce_init', 'bgcart' );
-add_action('woocommerce_payment_complete', 'payment_complete', 10, 1);
-add_action('woocommerce_order_status_changed', 'order_status_changed', 10, 3);
-add_action('woocommerce_thankyou', 'handle_thankyou_redirect', 10, 1);
+// Bingeme → LMS course checkout (not WooCommerce product checkout).
+add_action( 'template_redirect', 'bgcart', 1 );
+add_action( 'woocommerce_payment_complete', 'payment_complete', 10, 1 );
+add_action( 'woocommerce_order_status_changed', 'order_status_changed', 10, 3 );
+add_action( 'woocommerce_thankyou', 'handle_thankyou_redirect', 10, 1 );
 add_action( 'wp_insert_post', 'order_created', 10, 3 );
-// Only empty the cart for Bingeme deposit add-to-cart requests (not every shop add).
-add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10, 2 );
-add_filter( 'woocommerce_add_to_cart_redirect', 'misha_skip_cart_redirect_checkout' );
-
-function misha_skip_cart_redirect_checkout( $url ) {
-	return wc_get_checkout_url();
-}
 
 /**
- * Empty the cart before a Bingeme deposit product is added so only that amount is paid.
+ * Read Bingeme deposit session from cookie.
  *
- * @param array $cart_item_data Cart item data.
- * @param int   $product_id    Product being added.
- * @return array
+ * @return array<string,mixed>
  */
-function bg_custom_add_to_cart( $cart_item_data, $product_id = 0 ) {
-	$is_bg_product = $product_id && get_post_meta( (int) $product_id, '_bg_dynamic_product', true );
-	$is_bg_request = ! empty( $_COOKIE['bg_cart_data'] ) || ( isset( $_REQUEST['bg_deposit'] ) && '1' === $_REQUEST['bg_deposit'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	if ( $is_bg_product || $is_bg_request ) {
-		if ( function_exists( 'WC' ) && WC()->cart ) {
-			WC()->cart->empty_cart();
-		}
+function bg_get_cart_session() {
+	if ( empty( $_COOKIE['bg_cart_data'] ) ) {
+		return array();
 	}
-	return $cart_item_data;
+	$data = maybe_unserialize( wp_unslash( $_COOKIE['bg_cart_data'] ) );
+	return is_array( $data ) ? $data : array();
 }
 
 /**
- * Find an existing Bingeme dynamic product for an amount, or create one.
+ * Whether Bingeme LMS checkout session is active.
  *
- * @param float $amount Deposit amount.
- * @return int Product ID or 0 on failure.
+ * @return bool
  */
-function bg_get_or_create_amount_product( $amount ) {
-	$amount = (float) $amount;
-	if ( $amount <= 0 ) {
+function bg_is_lms_checkout_session() {
+	$session = bg_get_cart_session();
+	return ! empty( $session['id'] ) && isset( $session['amount'] ) && (float) $session['amount'] > 0 && ! empty( $session['course_id'] );
+}
+
+/**
+ * Resolve an existing lac_course for display (never creates a course).
+ * Picks a random published course; amount always comes from the Bingeme deposit.
+ *
+ * @param array $rowData Deposit API payload (unused for course selection).
+ * @return int Course post ID or 0.
+ */
+function bg_resolve_lac_course_id( $rowData = array() ) {
+	unset( $rowData );
+
+	$course_ids = get_posts(
+		array(
+			'post_type'      => 'lac_course',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'orderby'        => 'rand',
+		)
+	);
+
+	if ( empty( $course_ids ) ) {
 		return 0;
 	}
 
-	// Prefer products created by this plugin for the exact amount.
-	$query = new WP_Query(
-		array(
-			'posts_per_page' => 1,
-			'post_type'      => 'product',
-			'post_status'    => 'publish',
-			'fields'         => 'ids',
-			'meta_query'     => array(
-				'relation' => 'AND',
-				array(
-					'key'   => '_bg_dynamic_product',
-					'value' => '1',
-				),
-				array(
-					'key'   => '_price',
-					'value' => wc_format_decimal( $amount, wc_get_price_decimals() ),
-				),
-			),
-		)
-	);
-	if ( ! empty( $query->posts ) ) {
-		return (int) $query->posts[0];
-	}
-
-	return (int) bg_create_dynamic_amount_product( $amount );
+	return (int) $course_ids[ array_rand( $course_ids ) ];
 }
 
 /**
- * Ensure WooCommerce cart/session is ready after forced login, then add product and go to checkout.
+ * LMS checkout URL for a course.
  *
- * @param int $product_id Product to purchase.
- * @return void
+ * @param int $course_id Course post ID.
+ * @return string
  */
-function bg_add_product_and_redirect_to_checkout( $product_id ) {
-	$product_id = absint( $product_id );
-	if ( $product_id < 1 ) {
-		wp_die( 'Failed to prepare product for payment. Please try again.' );
-	}
-
-	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-		wp_die( 'WooCommerce cart is not available.' );
-	}
-
-	$product = wc_get_product( $product_id );
-	if ( ! $product || ! $product->is_purchasable() ) {
-		error_log( 'BG Error: product not purchasable id=' . $product_id . ' exists=' . ( $product ? '1' : '0' ) );
-		wp_die( 'The payment product is not purchasable. Please contact support.' );
-	}
-
-	// Persist the customer session cookie so the cart survives the checkout redirect.
-	if ( WC()->session ) {
-		if ( ! WC()->session->has_session() ) {
-			WC()->session->set_customer_session_cookie( true );
-		}
-		// Bind cart session to the user we just logged in as.
-		if ( is_user_logged_in() && WC()->customer ) {
-			WC()->customer->set_id( get_current_user_id() );
-			WC()->customer->set_email( wp_get_current_user()->user_email );
-			WC()->customer->set_billing_email( wp_get_current_user()->user_email );
+function bg_get_lac_checkout_url( $course_id ) {
+	if ( function_exists( 'lac_get_checkout_url_for_course' ) ) {
+		$url = lac_get_checkout_url_for_course( $course_id );
+		if ( is_string( $url ) && '' !== $url ) {
+			return $url;
 		}
 	}
-
-	// Avoid emptying from inside the add_cart_item_data filter on this direct path.
-	remove_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10 );
-	WC()->cart->empty_cart();
-	$added = WC()->cart->add_to_cart( $product_id, 1 );
-	add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10, 2 );
-
-	if ( ! $added ) {
-		error_log( 'BG Error: add_to_cart failed for product_id=' . $product_id );
-		wp_safe_redirect( add_query_arg( array( 'add-to-cart' => $product_id, 'bg_deposit' => '1' ), wc_get_cart_url() ) );
-		exit;
-	}
-
-	WC()->cart->calculate_totals();
-	if ( WC()->session ) {
-		WC()->session->save_data();
-	}
-	wp_safe_redirect( wc_get_checkout_url() );
-	exit;
+	$slug = get_post_field( 'post_name', $course_id );
+	return add_query_arg( 'course', rawurlencode( (string) $slug ), home_url( '/checkout/' ) );
 }
 
 function order_created( $post_id, $post, $update) {
@@ -323,72 +272,27 @@ function bgcart( ) {
 	                  $session_data['payment_gateway'] = 'stripe';
 	                }
 
-			setcookie('bg_cart_data',  serialize($session_data), time()+(86400 * 30), "/");
+			$course_id = bg_resolve_lac_course_id( $rowData );
+			if ( $course_id < 1 ) {
+				error_log( 'BG Error: No published lac_course found for Bingeme checkout.' );
+				wp_die( 'No published course is available for payment checkout. Please add at least one course in Learn AI Courses.' );
+			}
+
+			$session_data['amount']    = (float) $rowData['amount'];
+			$session_data['course_id'] = $course_id;
+			$session_data['email']     = $rowData['email'];
+			$session_data['lms']       = 1;
+
+			setcookie('bg_cart_data', serialize($session_data), time()+(86400 * 30), '/');
 			$_COOKIE['bg_cart_data'] = serialize($session_data);
 
-			// Find or create a Bingeme-only product for this amount, add it now, go to WC checkout.
-			$product_id = bg_get_or_create_amount_product( (float) $rowData['amount'] );
-			if ( ! $product_id ) {
-				error_log( 'BG Error: Failed to create dynamic product for amount: ' . $rowData['amount'] );
-				wp_die( 'Failed to create product for payment. Please try again.' );
-			}
-			bg_add_product_and_redirect_to_checkout( $product_id );
+			wp_safe_redirect( bg_get_lac_checkout_url( $course_id ) );
+			exit;
         } else {
             wp_die('Payment initiation failed. The deposit details could not be retrieved from API. Please verify BG_API_URL/BG_API_KEY and that the txn_id exists.');
 		}
 	}
 }
-
-// Create a hidden, one-per-order product for a custom amount
-function bg_create_dynamic_amount_product( $amount ) {
-    try {
-        $amount = (float) $amount;
-        if ( $amount <= 0 ) {
-            return false;
-        }
-
-        if ( class_exists('WC_Product_Simple') ) {
-            $product = new WC_Product_Simple();
-            $product->set_name( 'Digital Purchase #' . wp_generate_password(4, false) );
-            $product->set_status( 'publish' );
-            $product->set_catalog_visibility( 'hidden' );
-            $product->set_manage_stock( false );
-            $product->set_stock_status( 'instock' );
-            $product->set_sold_individually( true );
-            $product->set_virtual( true );
-            $product->set_regular_price( wc_format_decimal( $amount, wc_get_price_decimals() ) );
-            $product->set_price( wc_format_decimal( $amount, wc_get_price_decimals() ) );
-            $product_id = $product->save();
-            if ( $product_id ) {
-                update_post_meta( $product_id, '_bg_dynamic_product', 1 );
-                // Ensure product type taxonomy is set so WooCommerce treats it as purchasable.
-                wp_set_object_terms( $product_id, 'simple', 'product_type', false );
-                return (int) $product_id;
-            }
-        }
-
-        $post_id = wp_insert_post(array(
-            'post_title'   => 'Digital Purchase #' . wp_generate_password(4, false),
-            'post_status'  => 'publish',
-            'post_type'    => 'product',
-        ));
-        if ( $post_id && !is_wp_error($post_id) ) {
-            update_post_meta($post_id, '_regular_price', (string)$amount);
-            update_post_meta($post_id, '_price', (string)$amount);
-            update_post_meta($post_id, '_manage_stock', 'no');
-            update_post_meta($post_id, '_sold_individually', 'yes');
-            update_post_meta($post_id, '_virtual', 'yes');
-            update_post_meta($post_id, '_downloadable', 'no');
-            update_post_meta($post_id, '_visibility', 'hidden');
-            update_post_meta($post_id, '_bg_dynamic_product', 1 );
-            return (int)$post_id;
-        }
-    } catch ( \Exception $e ) {
-        error_log('BG dynamic product create error: ' . $e->getMessage());
-    }
-    return false;
-}
-
 
 function update_bg_deposit($status = 'pending', $data = []) {
     try {
