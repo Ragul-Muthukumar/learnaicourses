@@ -1,0 +1,299 @@
+<?php
+/**
+ * @package Bgcheckout
+ */
+/*
+Plugin Name: Bg Checkout
+Plugin URI: https://templarcorp.co.uk/
+Description: BG Checkout
+Version: 1.0.0
+Requires at least: 1.0
+Requires PHP: 5.2
+Author: templarcorp
+Author URI: https://templarcorp.co.uk/
+License: GPLv2 or later
+Text Domain: templarcorp
+*/
+
+// Make sure we don't expose any info if called directly
+if ( !function_exists( 'add_action' ) ) {
+	echo 'Hi there!  I\'m just a plugin, not much I can do when called directly.';
+	exit;
+}
+
+add_action( 'woocommerce_init', 'bgcart' );
+add_action('woocommerce_before_thankyou', 'order_complete', 10, 1);
+add_action('woocommerce_order_status_changed', 'order_status_changed', 10, 3);
+add_action( 'wp_insert_post', 'order_created', 10, 3 );
+add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart' );
+add_filter( 'woocommerce_add_to_cart_redirect', 'misha_skip_cart_redirect_checkout' );
+ 
+function misha_skip_cart_redirect_checkout( $url ) {
+	return wc_get_checkout_url();
+}
+
+function bg_custom_add_to_cart( $cart_item_data ) {
+
+    global $woocommerce;
+    $woocommerce->cart->empty_cart();
+
+    // Do nothing with the data and return
+    return $cart_item_data;
+}
+
+function order_created( $post_id, $post, $update) {
+	if ( ! $post_id || get_post_type( $post_id ) != 'shop_order' || $update == 1 ) {
+		return;
+	}
+
+	$deposit_id = get_post_meta($post_id, '_bg_deposit_id', true);
+	//$wc_session_bg_data = WC()->session->bg_cart_data;
+	$bg_data = [];
+	if(isset($_COOKIE['bg_cart_data'])) {
+		$bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
+	}
+	if (!$deposit_id && count($bg_data)) {
+		add_post_meta($post_id, '_bg_deposit_id', esc_sql($bg_data['id']));
+	}
+}
+
+function getAmount() {
+
+	$txn_id = sanitize_text_field(esc_sql($_GET['txn_id']));
+	try{
+		$apiKey = BG_API_KEY;
+		$url = BG_API_URL;
+		$cookie = [];
+		if(BG_ENV != "prod"){
+			$cookie = [
+				'ckDevTest' => BG_COOKIE,
+				'ckdev' => BG_COOKIE
+                	];
+		}
+        $apiUrl = $url."api/get/deposits/amount";
+        $request_data = [
+                'txn_id'     => $txn_id
+        ];
+        $request_arguments = array(
+                        'headers'=>['X-API-key' => $apiKey],
+			'body' => json_encode($request_data),
+			'cookies' => $cookie
+                );
+
+        $response = wp_remote_post($apiUrl, $request_arguments);
+		$response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code === 200) {
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+            if ($data !== null) {
+                return $data;
+            }
+        }
+		return $response;
+
+    }  catch(Exception $e){
+		trigger_error('Binge API Error:' . $e->getMessage());
+    }
+
+	return false;
+}
+function bgcart( ) {
+	if ( strpos($_SERVER['REQUEST_URI'], 'bgcart') != false ) {
+		$bg_redirect_url_domain = BG_API_URL;
+		$bg_user_password = BG_USER_PASSWORD;
+		$rowData = getAmount();
+	 	error_log(print_r($rowData, true));
+		if ($rowData) {
+			$session_data['id'] = $rowData['id'];
+			$user = get_user_by('email', $rowData['email']);
+			if (!$user) {
+				wp_create_user($rowData['email'], $bg_user_password, $rowData['email']);
+				$user = get_user_by('email', $rowData['email']);
+			}
+
+			wp_clear_auth_cookie();
+			wp_set_current_user ( $user->ID );
+			wp_set_auth_cookie  ( $user->ID );
+		
+			if (!$rowData['ref'] | $rowData['ref'] == "/") {
+				$session_data['url'] = $bg_redirect_url_domain . 'my/wallet';
+			}
+			else {
+				$session_data['url'] = $bg_redirect_url_domain . $rowData['ref'];
+			}
+
+			if(str_contains(strtolower($rowData['payment_gateway']), 'phonepe')) {
+	                  $session_data['payment_gateway'] = 'phonepe';
+	                } else if(str_contains(strtolower($rowData['payment_gateway']), 'stripe')) {
+	                  $session_data['payment_gateway'] = 'stripe';
+	                }
+
+			// WC()->session->set( 'bg_cart_data' , $session_data );
+			setcookie('bg_cart_data',  serialize($session_data), time()+(86400 * 30), "/");
+			$query = new WP_Query(array(
+				'posts_per_page' => 1,
+				'post_type' => 'product',
+				'meta_key' => '_price',
+				'meta_value' => (int) $rowData['amount'],
+				'meta_compare' => '='
+			));
+
+			if ($query->have_posts()) {
+				wp_redirect('/shop/?add-to-cart='. $query->post->ID);
+				exit;
+			} 
+		}
+	} 
+}
+
+function update_bg_deposit($status = 'pending', $data = []){
+    try{
+		$apiKey = BG_API_KEY;
+		$url = BG_API_URL;
+		$cookie = [];
+                if(BG_ENV != "prod"){
+                        $cookie = [
+                                'ckDevTest' => BG_COOKIE,
+                                'ckdev' => BG_COOKIE
+                        ];
+                }
+        $apiUrl = $url."api/update/payment/deposit/status";
+        $request_data = [
+                'id'     => esc_sql($data['id']),
+                'status' => $status,
+        ];
+        $request_arguments = array(
+                        'headers'=>['X-API-key' => $apiKey],
+			'body' => json_encode($request_data),
+			'cookies' => $cookie
+                );
+
+	$response = wp_remote_post($apiUrl, $request_arguments);
+	error_log(print_r($apiUrl, true));
+	error_log(print_r($response, true));
+
+    }  catch(Exception $e){
+		trigger_error('Binge API Error:' . $e->getMessage());
+    }
+
+}
+
+function update_bg_deposit_failed($data = []) {
+	try {
+		if (isset($data['user_id'])) {
+			$apiKey =BG_API_KEY;
+			$url = BG_API_URL;
+			$cookie = [];
+                if(BG_ENV != "prod"){
+                        $cookie = [
+                                'ckDevTest' => BG_COOKIE,
+                                'ckdev' => BG_COOKIE
+                        ];
+                }
+			$apiUrl = $url."api/set/deposits/fail";
+			$request_data = [
+					'deposit_id'     => esc_sql($data['id'])
+			];
+			$request_arguments = array(
+							'headers'=>['X-API-key' => $apiKey],
+							'body' => json_encode($request_data),
+							'cookies' => $cookie
+					);
+
+			$response = wp_remote_post($apiUrl, $request_arguments);
+
+			return true;
+			
+		}
+	} catch(Exception $e) {
+		trigger_error('Binge API Set Deposit Fail Error:' . $e->getMessage());
+	}
+
+	return false;	
+}
+
+function order_complete($id) {
+
+	$order_details = get_post_meta($id);
+	if (isset($order_details['_payment_status']) && $order_details['_payment_status'][0] == "COMPLETED") {
+		//$wc_session_bg_data = WC()->session->bg_cart_data;
+		$bg_data = [];
+		if(isset($_COOKIE['bg_cart_data'])) {
+			$bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
+		}
+		update_bg_deposit('active', $bg_data);
+	}
+}
+
+function order_status_changed($order_id, $old_status, $new_status) {
+	$order_details = get_post_meta($order_id);
+	if (!$order_details['_bg_deposit_id']) {
+		//$wc_session_bg_data = WC()->session->bg_cart_data;
+		$bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
+		add_post_meta($order_id, '_bg_deposit_id', esc_sql($bg_data['id']));
+	}
+	$data = [
+		'id' => $order_details['_bg_deposit_id'][0],
+	];
+	if ($new_status=='completed' && $order_details['_bg_deposit_id']) {
+		update_bg_deposit('active', $data);
+	}
+	if ($new_status == "cancelled" && $order_details['_bg_deposit_id']) {
+		update_bg_deposit_failed($data);
+	}
+}
+
+/**
+ * Proper way to enqueue scripts and styles
+ */
+function wpdocs_bg_checkout_scripts() {
+	wp_enqueue_style( 'widget-woocommerce', plugin_dir_url( __FILE__ ).'assets/css/widget-woocommerce.min.css' );
+	wp_enqueue_style( 'widget-nav-menu', plugin_dir_url( __FILE__ ).'assets/css/widget-nav-menu.min.css' );
+	wp_enqueue_style( 'fontawesome', plugin_dir_url( __FILE__ ).'assets/css/fontawesome.min.css' );
+	wp_enqueue_style( 'widget-theme-elements', plugin_dir_url( __FILE__ ).'assets/css/widget-theme-elements.min.css' );
+	wp_enqueue_style( 'brands', plugin_dir_url( __FILE__ ).'assets/css/brands.min.css' );
+	wp_enqueue_style( 'solid', plugin_dir_url( __FILE__ ).'assets/css/solid.min.css' );
+	wp_enqueue_style( 'widget-icon-list', plugin_dir_url( __FILE__ ).'assets/css/widget-icon-list.min.css' );
+	wp_enqueue_style( 'frontend-lite', plugin_dir_url( __FILE__ ).'assets/css/frontend-lite.min.css' );
+	wp_enqueue_style( 'post-14', plugin_dir_url( __FILE__ ).'assets/css/post-14.css' );
+	wp_enqueue_style( 'post-224', plugin_dir_url( __FILE__ ).'assets/css/post-224.css' );
+	wp_enqueue_style( 'post-20', plugin_dir_url( __FILE__ ).'assets/css/post-20.css' );
+	wp_enqueue_style( 'post-11', plugin_dir_url( __FILE__ ).'assets/css/post-11.css' );
+}
+add_action( 'init', 'wpdocs_bg_checkout_scripts' );
+
+
+
+// Register custom API endpoint
+function custom_payment_methods_route() {
+    register_rest_route( 'custom/v1', '/payment-methods', array(
+        'methods'  => 'GET, POST',
+        'callback' => 'enable_or_disable_payment_settings',
+    ));
+}
+add_action( 'rest_api_init', 'custom_payment_methods_route' );
+
+// Callback function to handle GET and POST requests
+function enable_or_disable_payment_settings ( $request ) {
+	if ( 'POST' === $request->get_method() ) {
+		$params = $request->get_params();
+		$provided_api_key = $request->get_header( 'x-api-key' );
+		$expected_api_key = BG_API_KEY;
+
+		if ( ! $provided_api_key || $provided_api_key !== $expected_api_key ) {
+        		return new WP_Error( 'unauthorized', __( 'Unauthorized - Invalid API key.', 'text-domain' ), array( 'status' => 401 ) );
+    		}
+
+		// Ensure required parameters are present
+		if ( !isset( $params['method_id'] ) || !isset( $params['enabled'] ) ) {
+			return new WP_Error( 'invalid_params', esc_html__( 'Method ID and enabled status are required.', 'text-domain' ), array( 'status' => 400 ) );
+		}
+
+		$options = get_option($params['method_id']);
+		$options['enabled'] = $params['enabled'];
+		update_option($params['method_id'], $options);
+		return rest_ensure_response( array( 'success' => true ) );
+
+	}
+}
+
