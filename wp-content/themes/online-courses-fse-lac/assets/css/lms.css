@@ -559,7 +559,7 @@ body.lac-fse-lms .lac-checkout__grid {
 	max-width: none;
 	margin: 0 auto;
 	display: grid;
-	grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.7fr);
+	grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
 	gap: 1.5rem;
 	align-items: start;
 }
@@ -745,8 +745,22 @@ body.lac-fse-lms .lac-checkout .lac-enroll-button {
 	.lac-course-grid,
 	.lac-course-hero__grid,
 	.lac-layout,
-	.lac-checkout__grid {
-		grid-template-columns: 1fr;
+	.lac-checkout__grid,
+	body.lac-fse-lms .lac-checkout__grid {
+		grid-template-columns: 1fr !important;
+		width: min(1320px, calc(100% - 1.5rem));
+	}
+
+	body.lac-fse-lms .lac-checkout__summary,
+	body.lac-fse-lms .lac-checkout__panel {
+		min-width: 0;
+		width: 100%;
+		max-width: 100%;
+	}
+
+	body.lac-fse-lms .lac-checkout__title {
+		overflow-wrap: anywhere;
+		word-break: break-word;
 	}
 
 	.lac-summary {

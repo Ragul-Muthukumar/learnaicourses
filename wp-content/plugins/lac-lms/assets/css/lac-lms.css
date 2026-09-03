@@ -457,6 +457,17 @@
 		grid-template-columns: 1fr;
 	}
 
+	.lac-checkout__summary,
+	.lac-checkout__panel {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.lac-checkout__title {
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
+
 	.lac-product__buy-card {
 		position: static;
 	}
@@ -585,6 +596,52 @@
 .lac-checkout__digital-note a {
 	color: #0f766e;
 	font-weight: 650;
+}
+
+.lac-payment-status {
+	text-align: center;
+	padding: 1.25rem 0.5rem;
+}
+
+.lac-payment-status__title {
+	margin: 0 0 0.5rem;
+	font-size: 1.2rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+
+.lac-payment-status__title.is-success {
+	color: #047857;
+}
+
+.lac-payment-status__title.is-error {
+	color: #b91c1c;
+}
+
+.lac-payment-status__title.is-progress {
+	color: #0f766e;
+}
+
+.lac-payment-status__text {
+	margin: 0;
+	color: #475569;
+	line-height: 1.5;
+}
+
+.lac-payment-status__spinner {
+	width: 28px;
+	height: 28px;
+	margin: 0 auto 0.85rem;
+	border: 3px solid #d1fae5;
+	border-top-color: #0f766e;
+	border-radius: 50%;
+	animation: lac-spin 0.8s linear infinite;
+}
+
+@keyframes lac-spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .lac-checkout__payment-blocked {

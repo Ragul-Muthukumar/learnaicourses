@@ -35,13 +35,44 @@
 	}
 
 	/**
+	 * Render a checkout status panel (progress / success / error).
+	 * @param {HTMLElement} target_el Element to replace or fill.
+	 * @param {'progress'|'success'|'error'} kind Status kind.
+	 * @param {string} title Heading text.
+	 * @param {string} text Supporting text.
+	 */
+	function lac_render_payment_status(target_el, kind, title, text) {
+		if (!target_el) {
+			return;
+		}
+		const panel = document.createElement('div');
+		panel.className = 'lac-payment-status';
+		if (kind === 'progress') {
+			const spinner = document.createElement('div');
+			spinner.className = 'lac-payment-status__spinner';
+			panel.appendChild(spinner);
+		}
+		const title_el = document.createElement('p');
+		title_el.className = 'lac-payment-status__title is-' + kind;
+		title_el.textContent = title;
+		panel.appendChild(title_el);
+		const text_el = document.createElement('p');
+		text_el.className = 'lac-payment-status__text';
+		text_el.textContent = text;
+		panel.appendChild(text_el);
+		target_el.innerHTML = '';
+		target_el.appendChild(panel);
+	}
+
+	/**
 	 * Redirect to continue learning or swap the CTA after success.
 	 * @param {HTMLElement} source_el Button or PayPal wrap element.
 	 * @param {string} course_id Encrypted course id.
 	 * @param {string} success_message Confirmation text.
 	 * @param {string} [continue_url] Optional learning-page URL from the REST response.
+	 * @param {Object} [extra] Optional extras such as redirect_delay_ms.
 	 */
-	function lac_mark_purchased(source_el, course_id, success_message, continue_url) {
+	function lac_mark_purchased(source_el, course_id, success_message, continue_url, extra) {
 		// Prefer replacing the outer paypal wrap when present.
 		const wrap_el = source_el.classList.contains('lac-paypal-wrap')
 			? source_el
@@ -51,6 +82,23 @@
 			? wrap_el
 			: (wrap_el ? wrap_el.closest('[data-lac-checkout-actions]') : null);
 		const dest_url = continue_url || (checkout_actions_el ? checkout_actions_el.dataset.continue_url : '');
+		const delay_ms = extra && Number(extra.redirect_delay_ms) > 0 ? Number(extra.redirect_delay_ms) : 0;
+		const status_host = checkout_actions_el || wrap_el;
+
+		// Bingeme (and any delayed redirect): show success on this site first.
+		if (dest_url && delay_ms > 0 && status_host) {
+			lac_render_payment_status(
+				status_host,
+				'success',
+				'Payment successful',
+				(success_message || 'Your payment was completed.') + ' Redirecting you back…'
+			);
+			setTimeout(function () {
+				window.location.href = dest_url;
+			}, delay_ms);
+			return;
+		}
+
 		if (dest_url) {
 			window.location.href = dest_url;
 			return;
@@ -176,12 +224,16 @@
 			// Replace every matching purchase CTA on the page with continue.
 			document.querySelectorAll('.lac-enroll-button.is-purchase, .lac-paypal-wrap').forEach(function (el) {
 				if (el.dataset.course_id === button_el.dataset.course_id || el === button_el) {
-					lac_mark_purchased(el, button_el.dataset.course_id, payload.message, payload.continue_url);
+					lac_mark_purchased(el, button_el.dataset.course_id, payload.message, payload.continue_url, {
+						redirect_delay_ms: payload.redirect_delay_ms,
+					});
 				}
 			});
 			// Also mark the clicked button if it remains.
 			if (document.body.contains(button_el)) {
-				lac_mark_purchased(button_el, button_el.dataset.course_id, payload.message, payload.continue_url);
+				lac_mark_purchased(button_el, button_el.dataset.course_id, payload.message, payload.continue_url, {
+					redirect_delay_ms: payload.redirect_delay_ms,
+				});
 			}
 		} catch (error) {
 			// Show a readable failure message.
@@ -252,6 +304,13 @@
 			 * @param {Object} data PayPal approval data with orderID.
 			 */
 			onApprove: async function (data) {
+				const actions_el = wrap_el.closest('[data-lac-checkout-actions]') || wrap_el;
+				lac_render_payment_status(
+					actions_el,
+					'progress',
+					'Processing payment…',
+					'Please wait while we confirm your PayPal payment.'
+				);
 				try {
 					// Ask our server to capture funds and enroll the learner.
 					const response = await fetch(lac_config.rest_url + 'paypal/capture-order', {
@@ -269,11 +328,24 @@
 					if (!response.ok) {
 						throw new Error(payload.message || 'Payment capture failed.');
 					}
-					// Swap the PayPal UI for a continue-learning button.
-					lac_mark_purchased(wrap_el, wrap_el.dataset.course_id, payload.message, payload.continue_url);
+					// Swap the PayPal UI for a continue-learning button / success panel.
+					lac_mark_purchased(
+						wrap_el,
+						wrap_el.dataset.course_id,
+						payload.message,
+						payload.continue_url,
+						{
+							redirect_delay_ms: payload.redirect_delay_ms,
+						}
+					);
 				} catch (error) {
 					// Surface capture failures under the button area.
-					lac_show_message(message_el, error.message || 'Payment failed.', true);
+					lac_render_payment_status(
+						actions_el,
+						'error',
+						'Payment failed',
+						(error && error.message) || 'Payment failed. Please try again.'
+					);
 				}
 			},
 			/**
@@ -285,8 +357,17 @@
 				if (error && error.message === 'Login required') {
 					return;
 				}
-				// Show a generic checkout failure message.
-				lac_show_message(message_el, (error && error.message) || 'PayPal checkout error.', true);
+				const actions_el = wrap_el.closest('[data-lac-checkout-actions]') || wrap_el;
+				lac_render_payment_status(
+					actions_el,
+					'error',
+					'Payment failed',
+					(error && error.message) || 'PayPal checkout error.'
+				);
+			},
+			onCancel: function () {
+				const message_el = wrap_el.querySelector('.lac-enroll-message');
+				lac_show_message(message_el, 'Payment cancelled. You can try again when ready.', true);
 			},
 		}).render(container_el);
 	}

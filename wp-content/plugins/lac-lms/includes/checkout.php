@@ -84,24 +84,55 @@ function lac_get_bingeme_return_url() {
 }
 
 /**
- * Mark the Bingeme deposit active after successful LMS PayPal payment.
+ * Mark the Bingeme deposit active after successful LMS PayPal payment,
+ * and create a WooCommerce order (with PayPal transaction id) for reconciliation.
  *
  * @param string $paypal_txn_id Optional PayPal capture / transaction id.
- * @return bool
+ * @param int    $course_id     Course used on checkout.
+ * @param float  $amount        Charged amount.
+ * @return array{ok:bool,wc_order_id:int}
  */
-function lac_complete_bingeme_deposit( $paypal_txn_id = '' ) {
-	if ( ! lac_is_bingeme_checkout() || ! function_exists( 'update_bg_deposit' ) ) {
-		return false;
+function lac_complete_bingeme_deposit( $paypal_txn_id = '', $course_id = 0, $amount = 0 ) {
+	if ( ! lac_is_bingeme_checkout() ) {
+		return array(
+			'ok'          => false,
+			'wc_order_id' => 0,
+		);
 	}
-	$session = lac_get_bingeme_session();
-	$data    = array(
-		'id' => $session['id'],
+
+	$session   = lac_get_bingeme_session();
+	$user_id   = get_current_user_id();
+	$amount    = $amount > 0 ? (float) $amount : (float) ( $session['amount'] ?? 0 );
+	$course_id = $course_id > 0 ? absint( $course_id ) : absint( $session['course_id'] ?? 0 );
+
+	$wc_order_id = 0;
+	if ( function_exists( 'bg_create_woocommerce_order_from_lms' ) ) {
+		$wc_order_id = (int) bg_create_woocommerce_order_from_lms(
+			array(
+				'amount'        => $amount,
+				'course_id'     => $course_id,
+				'user_id'       => $user_id,
+				'paypal_txn_id' => $paypal_txn_id,
+				'deposit_id'    => $session['id'] ?? '',
+				'txn_id'        => $session['txn_id'] ?? '',
+			)
+		);
+	}
+
+	if ( function_exists( 'update_bg_deposit' ) ) {
+		$data = array(
+			'id' => $session['id'],
+		);
+		if ( '' !== $paypal_txn_id ) {
+			$data['paypal_txn_id'] = sanitize_text_field( $paypal_txn_id );
+		}
+		update_bg_deposit( 'active', $data );
+	}
+
+	return array(
+		'ok'          => true,
+		'wc_order_id' => $wc_order_id,
 	);
-	if ( '' !== $paypal_txn_id ) {
-		$data['paypal_txn_id'] = sanitize_text_field( $paypal_txn_id );
-	}
-	update_bg_deposit( 'active', $data );
-	return true;
 }
 
 /**

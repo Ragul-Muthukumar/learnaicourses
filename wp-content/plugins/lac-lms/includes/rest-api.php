@@ -314,16 +314,21 @@ function lac_rest_paypal_capture_order( WP_REST_Request $request ) {
 
 	$is_bingeme = function_exists( 'lac_is_bingeme_checkout' ) && lac_is_bingeme_checkout();
 	if ( $is_bingeme ) {
-		if ( function_exists( 'lac_complete_bingeme_deposit' ) ) {
-			lac_complete_bingeme_deposit( $capture_id );
-		}
-		lac_log_info( 'Bingeme LMS PayPal purchase completed for local order ' . absint( $order_row->id ) );
+		$bg_result = function_exists( 'lac_complete_bingeme_deposit' )
+			? lac_complete_bingeme_deposit( $capture_id, (int) $order_row->course_id, (float) $order_row->amount )
+			: array( 'ok' => false, 'wc_order_id' => 0 );
+		lac_log_info(
+			'Bingeme LMS PayPal purchase completed for local order ' . absint( $order_row->id )
+			. ' wc_order=' . absint( $bg_result['wc_order_id'] ?? 0 )
+		);
 		return rest_ensure_response(
 			array(
 				'status'       => 'paid',
-				'message'      => 'Payment successful. Returning to your account…',
+				'message'      => 'Payment successful.',
 				'course_id'    => lac_encrypt_id( (int) $order_row->course_id ),
 				'continue_url' => function_exists( 'lac_get_bingeme_return_url' ) ? lac_get_bingeme_return_url() : home_url( '/' ),
+				'wc_order_id'  => absint( $bg_result['wc_order_id'] ?? 0 ),
+				'redirect_delay_ms' => 4500,
 			)
 		);
 	}
@@ -398,16 +403,18 @@ function lac_rest_purchase_course( WP_REST_Request $request ) {
 	lac_db_complete_order( $local_order_id, $mock_capture );
 
 	if ( $is_bingeme ) {
-		if ( function_exists( 'lac_complete_bingeme_deposit' ) ) {
-			lac_complete_bingeme_deposit( $mock_capture );
-		}
+		$bg_result = function_exists( 'lac_complete_bingeme_deposit' )
+			? lac_complete_bingeme_deposit( $mock_capture, (int) $validated['course_id'], (float) $validated['course_price'] )
+			: array( 'ok' => false, 'wc_order_id' => 0 );
 		lac_log_info( 'Mock Bingeme purchase completed for local order ' . absint( $local_order_id ) );
 		return rest_ensure_response(
 			array(
-				'status'       => 'paid',
-				'message'      => 'Payment successful. Returning to your account…',
-				'course_id'    => lac_encrypt_id( $validated['course_id'] ),
-				'continue_url' => function_exists( 'lac_get_bingeme_return_url' ) ? lac_get_bingeme_return_url() : home_url( '/' ),
+				'status'            => 'paid',
+				'message'           => 'Payment successful.',
+				'course_id'         => lac_encrypt_id( $validated['course_id'] ),
+				'continue_url'      => function_exists( 'lac_get_bingeme_return_url' ) ? lac_get_bingeme_return_url() : home_url( '/' ),
+				'wc_order_id'       => absint( $bg_result['wc_order_id'] ?? 0 ),
+				'redirect_delay_ms' => 4500,
 			)
 		);
 	}

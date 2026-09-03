@@ -294,6 +294,94 @@ function bgcart( ) {
 	}
 }
 
+/**
+ * Create a WooCommerce order for a Bingeme LMS PayPal payment so it appears in WC → Orders.
+ *
+ * @param array $args {
+ *   @type float  $amount           Charged amount.
+ *   @type int    $course_id        lac_course id used for the line name.
+ *   @type int    $user_id          WP user id.
+ *   @type string $paypal_txn_id    PayPal capture / transaction id.
+ *   @type int    $deposit_id       Bingeme deposit id.
+ *   @type string $txn_id           Bingeme txn_id.
+ * }
+ * @return int|false WooCommerce order id or false.
+ */
+function bg_create_woocommerce_order_from_lms( $args ) {
+	if ( ! function_exists( 'wc_create_order' ) ) {
+		error_log( 'BG Error: WooCommerce not available to create order.' );
+		return false;
+	}
+
+	$amount        = isset( $args['amount'] ) ? (float) $args['amount'] : 0;
+	$course_id     = isset( $args['course_id'] ) ? absint( $args['course_id'] ) : 0;
+	$user_id       = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
+	$paypal_txn_id = isset( $args['paypal_txn_id'] ) ? sanitize_text_field( $args['paypal_txn_id'] ) : '';
+	$deposit_id    = isset( $args['deposit_id'] ) ? $args['deposit_id'] : '';
+	$txn_id        = isset( $args['txn_id'] ) ? sanitize_text_field( $args['txn_id'] ) : '';
+
+	if ( $amount <= 0 || ! $user_id ) {
+		error_log( 'BG Error: invalid amount/user for WC order create.' );
+		return false;
+	}
+
+	try {
+		$order = wc_create_order(
+			array(
+				'customer_id' => $user_id,
+				'created_via' => 'bingeme-lms',
+			)
+		);
+		if ( is_wp_error( $order ) || ! $order ) {
+			error_log( 'BG Error: wc_create_order failed.' );
+			return false;
+		}
+
+		$item_name = $course_id ? get_the_title( $course_id ) : 'Bingeme payment';
+		if ( ! is_string( $item_name ) || '' === $item_name ) {
+			$item_name = 'Bingeme payment';
+		}
+
+		$item = new WC_Order_Item_Fee();
+		$item->set_name( $item_name );
+		$item->set_amount( $amount );
+		$item->set_total( $amount );
+		$item->set_tax_status( 'none' );
+		$order->add_item( $item );
+
+		$user = get_user_by( 'id', $user_id );
+		if ( $user ) {
+			$order->set_billing_email( $user->user_email );
+			$order->set_billing_first_name( $user->first_name ? $user->first_name : $user->display_name );
+		}
+
+		$order->set_currency( function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'USD' );
+		$order->set_payment_method( 'paypal' );
+		$order->set_payment_method_title( 'PayPal' );
+		if ( '' !== $paypal_txn_id ) {
+			$order->set_transaction_id( $paypal_txn_id );
+			$order->update_meta_data( '_bg_paypal_txn_id', $paypal_txn_id );
+		}
+		if ( '' !== $deposit_id && null !== $deposit_id ) {
+			$order->update_meta_data( '_bg_deposit_id', $deposit_id );
+		}
+		if ( '' !== $txn_id ) {
+			$order->update_meta_data( '_bg_txn_id', $txn_id );
+		}
+		$order->update_meta_data( '_bg_payment_processed', 'yes' );
+		$order->update_meta_data( '_bg_redirect_needed', 'yes' );
+		$order->calculate_totals( false );
+		$order->set_status( 'completed', 'Bingeme LMS PayPal payment captured.' );
+		$order->save();
+
+		error_log( 'BG: Created WC order #' . $order->get_id() . ' for deposit ' . $deposit_id . ' paypal=' . $paypal_txn_id );
+		return (int) $order->get_id();
+	} catch ( Exception $e ) {
+		error_log( 'BG Error creating WC order: ' . $e->getMessage() );
+		return false;
+	}
+}
+
 function update_bg_deposit($status = 'pending', $data = []) {
     try {
         $apiKey = BG_API_KEY;
