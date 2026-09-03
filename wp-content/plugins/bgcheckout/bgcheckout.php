@@ -95,20 +95,124 @@ add_action('woocommerce_payment_complete', 'payment_complete', 10, 1);
 add_action('woocommerce_order_status_changed', 'order_status_changed', 10, 3);
 add_action('woocommerce_thankyou', 'handle_thankyou_redirect', 10, 1);
 add_action( 'wp_insert_post', 'order_created', 10, 3 );
-add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart' );
+// Only empty the cart for Bingeme deposit add-to-cart requests (not every shop add).
+add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10, 2 );
 add_filter( 'woocommerce_add_to_cart_redirect', 'misha_skip_cart_redirect_checkout' );
 
 function misha_skip_cart_redirect_checkout( $url ) {
 	return wc_get_checkout_url();
 }
 
-function bg_custom_add_to_cart( $cart_item_data ) {
+/**
+ * Empty the cart before a Bingeme deposit product is added so only that amount is paid.
+ *
+ * @param array $cart_item_data Cart item data.
+ * @param int   $product_id    Product being added.
+ * @return array
+ */
+function bg_custom_add_to_cart( $cart_item_data, $product_id = 0 ) {
+	$is_bg_product = $product_id && get_post_meta( (int) $product_id, '_bg_dynamic_product', true );
+	$is_bg_request = ! empty( $_COOKIE['bg_cart_data'] ) || ( isset( $_REQUEST['bg_deposit'] ) && '1' === $_REQUEST['bg_deposit'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( $is_bg_product || $is_bg_request ) {
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			WC()->cart->empty_cart();
+		}
+	}
+	return $cart_item_data;
+}
 
-    global $woocommerce;
-    $woocommerce->cart->empty_cart();
+/**
+ * Find an existing Bingeme dynamic product for an amount, or create one.
+ *
+ * @param float $amount Deposit amount.
+ * @return int Product ID or 0 on failure.
+ */
+function bg_get_or_create_amount_product( $amount ) {
+	$amount = (float) $amount;
+	if ( $amount <= 0 ) {
+		return 0;
+	}
 
-    // Do nothing with the data and return
-    return $cart_item_data;
+	// Prefer products created by this plugin for the exact amount.
+	$query = new WP_Query(
+		array(
+			'posts_per_page' => 1,
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'   => '_bg_dynamic_product',
+					'value' => '1',
+				),
+				array(
+					'key'   => '_price',
+					'value' => wc_format_decimal( $amount, wc_get_price_decimals() ),
+				),
+			),
+		)
+	);
+	if ( ! empty( $query->posts ) ) {
+		return (int) $query->posts[0];
+	}
+
+	return (int) bg_create_dynamic_amount_product( $amount );
+}
+
+/**
+ * Ensure WooCommerce cart/session is ready after forced login, then add product and go to checkout.
+ *
+ * @param int $product_id Product to purchase.
+ * @return void
+ */
+function bg_add_product_and_redirect_to_checkout( $product_id ) {
+	$product_id = absint( $product_id );
+	if ( $product_id < 1 ) {
+		wp_die( 'Failed to prepare product for payment. Please try again.' );
+	}
+
+	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+		wp_die( 'WooCommerce cart is not available.' );
+	}
+
+	$product = wc_get_product( $product_id );
+	if ( ! $product || ! $product->is_purchasable() ) {
+		error_log( 'BG Error: product not purchasable id=' . $product_id . ' exists=' . ( $product ? '1' : '0' ) );
+		wp_die( 'The payment product is not purchasable. Please contact support.' );
+	}
+
+	// Persist the customer session cookie so the cart survives the checkout redirect.
+	if ( WC()->session ) {
+		if ( ! WC()->session->has_session() ) {
+			WC()->session->set_customer_session_cookie( true );
+		}
+		// Bind cart session to the user we just logged in as.
+		if ( is_user_logged_in() && WC()->customer ) {
+			WC()->customer->set_id( get_current_user_id() );
+			WC()->customer->set_email( wp_get_current_user()->user_email );
+			WC()->customer->set_billing_email( wp_get_current_user()->user_email );
+		}
+	}
+
+	// Avoid emptying from inside the add_cart_item_data filter on this direct path.
+	remove_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10 );
+	WC()->cart->empty_cart();
+	$added = WC()->cart->add_to_cart( $product_id, 1 );
+	add_filter( 'woocommerce_add_cart_item_data', 'bg_custom_add_to_cart', 10, 2 );
+
+	if ( ! $added ) {
+		error_log( 'BG Error: add_to_cart failed for product_id=' . $product_id );
+		wp_safe_redirect( add_query_arg( array( 'add-to-cart' => $product_id, 'bg_deposit' => '1' ), wc_get_cart_url() ) );
+		exit;
+	}
+
+	WC()->cart->calculate_totals();
+	if ( WC()->session ) {
+		WC()->session->save_data();
+	}
+	wp_safe_redirect( wc_get_checkout_url() );
+	exit;
 }
 
 function order_created( $post_id, $post, $update) {
@@ -220,29 +324,15 @@ function bgcart( ) {
 	                }
 
 			setcookie('bg_cart_data',  serialize($session_data), time()+(86400 * 30), "/");
-			
-			// Find or create product for the deposit amount
-			$query = new WP_Query(array(
-				'posts_per_page' => 1,
-				'post_type' => 'product',
-				'meta_key' => '_price',
-				'meta_value' => (float) $rowData['amount'],
-				'meta_compare' => '='
-			));
+			$_COOKIE['bg_cart_data'] = serialize($session_data);
 
-			if ($query->have_posts()) {
-                wp_redirect( home_url( '/shop/?add-to-cart=' . $query->post->ID ) );
-                exit;
-            } else {
-                $product_id = bg_create_dynamic_amount_product( (float) $rowData['amount'] );
-                if ( $product_id ) {
-                    wp_redirect( home_url( '/shop/?add-to-cart=' . $product_id ) );
-				exit;
-                } else {
-                    error_log('BG Error: Failed to create dynamic product for amount: ' . $rowData['amount']);
-                    wp_die('Failed to create product for payment. Please try again.');
-                }
-            }
+			// Find or create a Bingeme-only product for this amount, add it now, go to WC checkout.
+			$product_id = bg_get_or_create_amount_product( (float) $rowData['amount'] );
+			if ( ! $product_id ) {
+				error_log( 'BG Error: Failed to create dynamic product for amount: ' . $rowData['amount'] );
+				wp_die( 'Failed to create product for payment. Please try again.' );
+			}
+			bg_add_product_and_redirect_to_checkout( $product_id );
         } else {
             wp_die('Payment initiation failed. The deposit details could not be retrieved from API. Please verify BG_API_URL/BG_API_KEY and that the txn_id exists.');
 		}
@@ -263,13 +353,16 @@ function bg_create_dynamic_amount_product( $amount ) {
             $product->set_status( 'publish' );
             $product->set_catalog_visibility( 'hidden' );
             $product->set_manage_stock( false );
+            $product->set_stock_status( 'instock' );
             $product->set_sold_individually( true );
             $product->set_virtual( true );
-            $product->set_regular_price( (string) $amount );
-            $product->set_price( (string) $amount );
+            $product->set_regular_price( wc_format_decimal( $amount, wc_get_price_decimals() ) );
+            $product->set_price( wc_format_decimal( $amount, wc_get_price_decimals() ) );
             $product_id = $product->save();
             if ( $product_id ) {
                 update_post_meta( $product_id, '_bg_dynamic_product', 1 );
+                // Ensure product type taxonomy is set so WooCommerce treats it as purchasable.
+                wp_set_object_terms( $product_id, 'simple', 'product_type', false );
                 return (int) $product_id;
             }
         }

@@ -244,6 +244,11 @@ function lac_checkout_shortcode() {
 	$course_id = lac_resolve_course_id_from_slug( $course_slug );
 	 // Show guidance when the URL is missing or invalid.
 	if ( $course_id < 1 ) {
+		// Bingeme / WooCommerce deposit carts land on the same checkout URL without ?course=.
+		// When a WC cart has items, render WooCommerce checkout instead of the LMS empty state.
+		if ( function_exists( 'WC' ) && WC()->cart && ! WC()->cart->is_empty() && shortcode_exists( 'woocommerce_checkout' ) ) {
+			return '<div class="woocommerce lac-wc-deposit-checkout">' . do_shortcode( '[woocommerce_checkout]' ) . '</div>';
+		}
 		return '<div class="lac-checkout lac-checkout--empty"><p>' . esc_html( 'Choose a course to enroll or purchase, then return to checkout.' ) . ' <a href="' . esc_url( get_post_type_archive_link( 'lac_course' ) ) . '">' . esc_html( 'Browse courses' ) . '</a></p></div>';
 	}
 	 // Load course meta used in the checkout summary card.
