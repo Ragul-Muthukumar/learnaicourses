@@ -496,7 +496,7 @@
 
 .lac-checkout__title {
 	margin: 0 0 0.85rem;
-	font-size: clamp(1.8rem, 3vw, 2.5rem);
+	font-size: clamp(1.55rem, 2.6vw, 2.15rem);
 	line-height: 1.15;
 	color: #0f172a;
 }
@@ -549,10 +549,53 @@
 }
 
 .lac-checkout__total {
-	margin: 0.35rem 0 1.25rem;
-	font-size: 2rem;
+	margin: 0.35rem 0 0.5rem;
+	font-size: 1.75rem;
 	font-weight: 800;
 	color: #0f172a;
+}
+
+.lac-checkout__fulfillment {
+	margin: 0 0 1rem;
+	font-size: 0.9rem;
+	color: #0f766e;
+	font-weight: 600;
+}
+
+.lac-checkout__digital-badge {
+	margin: 0 0 0.35rem;
+	display: inline-block;
+	padding: 0.3rem 0.7rem;
+	border-radius: 999px;
+	background: #ecfdf5;
+	color: #115e59;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.lac-checkout__digital-note {
+	margin: 0 0 1rem;
+	font-size: 0.9rem;
+	line-height: 1.5;
+	color: #475569;
+}
+
+.lac-checkout__digital-note a {
+	color: #0f766e;
+	font-weight: 650;
+}
+
+.lac-checkout__payment-blocked {
+	margin: 0 0 0.75rem;
+	padding: 0.85rem 1rem;
+	border-radius: 0.85rem;
+	background: #fff7ed;
+	border: 1px solid #fdba74;
+	color: #9a3412;
+	font-weight: 650;
+	line-height: 1.45;
 }
 
 .lac-checkout__actions {

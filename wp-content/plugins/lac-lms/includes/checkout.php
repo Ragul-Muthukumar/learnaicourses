@@ -183,6 +183,13 @@ function lac_render_checkout_actions( $course_id ) {
 		<?php elseif ( $course_price > 0 ) : ?>
 			<?php
 			$price_text = number_format( $course_price, 2 );
+			?>
+			<p class="lac-checkout__digital-badge"><?php echo esc_html( 'Digital purchase' ); ?></p>
+			<p class="lac-checkout__digital-note">
+				<?php echo esc_html( 'This is an online digital course. Access is delivered immediately after payment. All digital sales are final — no refunds.' ); ?>
+				<a href="<?php echo esc_url( home_url( '/refund-policy/' ) ); ?>"><?php echo esc_html( 'Refund Policy' ); ?></a>
+			</p>
+			<?php
 			if ( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) :
 				?>
 				<div
@@ -190,19 +197,32 @@ function lac_render_checkout_actions( $course_id ) {
 					data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>"
 					data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"
 				>
-					<p class="lac-paypal-price"><?php echo esc_html( sprintf( 'Total: $%s', $price_text ) ); ?></p>
+					<p class="lac-paypal-price"><?php echo esc_html( sprintf( 'Digital course total: $%s', $price_text ) ); ?></p>
 					<div class="lac-paypal-button-container"></div>
 					<p class="lac-enroll-message" hidden></p>
 				</div>
-			<?php else : ?>
-				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Complete purchase — $%s', $price_text ) ); ?></span></button>
+			<?php elseif ( lac_paypal_allows_instant_purchase() ) : ?>
+				<button type="button" class="lac-enroll-button is-purchase" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="purchase" data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"><span class="lac-enroll-button__label"><?php echo esc_html( sprintf( 'Buy digital course (demo) — $%s', $price_text ) ); ?></span></button>
 				<p class="lac-enroll-message" hidden></p>
-				<?php if ( ! lac_paypal_is_mock_mode() && ! lac_paypal_is_configured() ) : ?>
-					<p class="lac-enroll-hint">
-						<?php echo esc_html( 'Local checkout mode. Set PAYPAL_MODE=mock or add PayPal credentials in .env.' ); ?>
-					</p>
-				<?php endif; ?>
-			<?php endif; ?>
+				<p class="lac-enroll-hint">
+					<?php echo esc_html( 'Demo / mock mode only. No real payment is charged.' ); ?>
+				</p>
+			<?php else : ?>
+				<p class="lac-checkout__payment-blocked">
+					<?php echo esc_html( sprintf( 'Checkout for this $%s course is temporarily unavailable.', $price_text ) ); ?>
+				</p>
+				<p class="lac-enroll-hint">
+					<?php echo esc_html( 'Please try again later, or contact support if you need help completing your purchase.' ); ?>
+				</p>
+				<p class="lac-enroll-hint">
+					<a href="mailto:fenllinskiii16@gmail.com"><?php echo esc_html( 'Contact support' ); ?></a>
+				</p>
+			<?php
+			 // Log for site owners — never show PayPal setup details on the storefront.
+			if ( function_exists( 'lac_log_error' ) ) {
+				lac_log_error( 'Checkout blocked: PayPal is not configured (set PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE).' );
+			}
+			endif; ?>
 		<?php else : ?>
 			<button type="button" class="lac-enroll-button is-available" data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>" data-action="enroll" data-course_price="0"><span class="lac-enroll-button__label"><?php echo esc_html( 'Complete enrollment' ); ?></span></button>
 			<p class="lac-enroll-message" hidden></p>
@@ -247,15 +267,18 @@ function lac_checkout_shortcode() {
 					<li><?php echo esc_html( $price_label ); ?></li>
 				</ul>
 				<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
-					<?php echo esc_html( '← Back to course' ); ?>
+					<?php echo esc_html( '← Back to course details' ); ?>
 				</a>
 			</section>
 			<aside class="lac-checkout__panel">
 				<?php if ( $thumbnail_url ) : ?>
 					<img class="lac-checkout__image" src="<?php echo esc_url( $thumbnail_url ); ?>" alt="<?php echo esc_attr( get_the_title( $course_id ) ); ?>" />
 				<?php endif; ?>
-				<p class="lac-checkout__total-label"><?php echo esc_html( 'Order total' ); ?></p>
+				<p class="lac-checkout__total-label"><?php echo esc_html( 'Digital course total' ); ?></p>
 				<p class="lac-checkout__total"><?php echo esc_html( $price_label ); ?></p>
+				<?php if ( $course_price > 0 ) : ?>
+					<p class="lac-checkout__fulfillment"><?php echo esc_html( 'Fulfillment: instant digital access (no shipping).' ); ?></p>
+				<?php endif; ?>
 				<?php echo lac_render_checkout_actions( $course_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</aside>
 		</div>
@@ -278,3 +301,224 @@ function lac_checkout_bootstrap_page() {
 
  // Create or reuse the checkout page on every request until stored.
 add_action( 'init', 'lac_checkout_bootstrap_page' );
+
+/**
+ * Return the published Refund Policy page HTML (digital goods, no refunds).
+ *
+ * @return string Block markup for the refund-policy page.
+ */
+function lac_get_digital_no_refund_policy_content() {
+	 // Keep contact email in one place for policy copy.
+	$support_email = 'fenllinskiii16@gmail.com';
+	 // Build Gutenberg-friendly HTML for the policy page body.
+	return '<!-- wp:heading -->
+<h2 class="wp-block-heading">Refund Policy</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">All products on Learn AI Courses are <strong>digital purchases</strong> only (online courses delivered instantly as digital content — not physical goods). <strong>All sales are final. There are no refunds.</strong></p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">1. Digital purchase — no refunds</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">When you pay, you receive immediate online access to digital course materials. Because this is a digital product and access starts right away, we do not offer refunds, returns, exchanges, or cancellations after payment—including mistaken purchases or change of mind.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">2. Before you buy</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">Please review the course title, description, curriculum, and price carefully before checkout. If you have questions, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a> <strong>before</strong> purchasing.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">3. Access problems</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">If you paid but cannot open your digital course because of a technical issue on our side, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a>. We will help restore access. Access support is not a refund.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">4. Free courses</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">Free enrollments have no purchase amount, so no refund applies.</p>
+<!-- /wp:paragraph -->
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">5. Contact</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph">For billing or access help, email <a href="mailto:' . esc_attr( $support_email ) . '">' . esc_html( $support_email ) . '</a>.</p>
+<!-- /wp:paragraph -->';
+}
+
+/**
+ * Overwrite the live Refund Policy page once with digital no-refund copy.
+ *
+ * Hostinger often still shows the old 7-day text until this runs after deploy.
+ *
+ * @return void
+ */
+function lac_sync_refund_policy_page_if_needed() {
+	 // Skip when this digital policy version was already written.
+	if ( get_option( 'lac_refund_policy_digital_v2' ) ) {
+		return;
+	}
+	 // Find the published refund-policy page by slug.
+	$pages = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'name'           => 'refund-policy',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+		)
+	);
+	 // Abort quietly when the page does not exist yet.
+	if ( empty( $pages ) ) {
+		lac_log_error( 'Refund policy page (slug refund-policy) was not found for sync.' );
+		return;
+	}
+	 // Replace page content with the digital no-refunds policy.
+	$update_result = wp_update_post(
+		array(
+			'ID'           => (int) $pages[0],
+			'post_content' => lac_get_digital_no_refund_policy_content(),
+		),
+		true
+	);
+	 // Log failures so operators can fix the page manually.
+	if ( is_wp_error( $update_result ) ) {
+		lac_log_error( 'Could not sync refund policy page: ' . $update_result->get_error_message() );
+		return;
+	}
+	 // Mark complete so the page is not rewritten on every request.
+	update_option( 'lac_refund_policy_digital_v2', 1, true );
+	lac_log_info( 'Synced Refund Policy page to digital purchase / no-refunds copy.' );
+}
+
+ // Run the one-time refund policy sync after WordPress is ready.
+add_action( 'init', 'lac_sync_refund_policy_page_if_needed', 30 );
+
+/**
+ * Replace leftover *@learnaicourses.local emails with the real support inbox.
+ *
+ * @return void
+ */
+function lac_replace_local_emails_in_content_if_needed() {
+	 // Skip when this email cleanup already ran.
+	if ( get_option( 'lac_local_emails_replaced_v1' ) ) {
+		return;
+	}
+	 // Real inbox used on the live site for all public contact addresses.
+	$real_email = 'fenllinskiii16@gmail.com';
+	 // Map every known .local alias to the same real inbox.
+	$local_aliases = array(
+		'privacy@learnaicourses.local',
+		'billing@learnaicourses.local',
+		'legal@learnaicourses.local',
+		'support@learnaicourses.local',
+		'admin@learnaicourses.local',
+	);
+	 // Load published pages that still mention a .local email.
+	$page_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			's'              => '@learnaicourses.local',
+		)
+	);
+	 // Rewrite each matching page body and excerpt.
+	foreach ( $page_ids as $page_id ) {
+		$page_post = get_post( $page_id );
+		if ( ! $page_post ) {
+			continue;
+		}
+		$new_content = $page_post->post_content;
+		$new_excerpt = $page_post->post_excerpt;
+		foreach ( $local_aliases as $local_alias ) {
+			$new_content = str_replace( $local_alias, $real_email, $new_content );
+			$new_excerpt = str_replace( $local_alias, $real_email, $new_excerpt );
+		}
+		 // Persist only when something actually changed.
+		if ( $new_content !== $page_post->post_content || $new_excerpt !== $page_post->post_excerpt ) {
+			wp_update_post(
+				array(
+					'ID'           => (int) $page_id,
+					'post_content' => $new_content,
+					'post_excerpt' => $new_excerpt,
+				)
+			);
+		}
+	}
+	 // Also fix the WordPress admin email option when it still uses .local.
+	$admin_email = get_option( 'admin_email' );
+	if ( is_string( $admin_email ) && false !== strpos( $admin_email, '@learnaicourses.local' ) ) {
+		update_option( 'admin_email', $real_email );
+	}
+	 // Mark complete so we do not rewrite pages on every request.
+	update_option( 'lac_local_emails_replaced_v1', 1, true );
+	lac_log_info( 'Replaced @learnaicourses.local emails with ' . $real_email );
+}
+
+ // Run the one-time .local email cleanup after pages are queryable.
+add_action( 'init', 'lac_replace_local_emails_in_content_if_needed', 31 );
+
+/**
+ * Remove duplicate Legal & privacy email lines on the Contact page.
+ *
+ * Replacing privacy@ and legal@ .local aliases with one Gmail left two identical mailto links.
+ *
+ * @return void
+ */
+function lac_fix_duplicate_contact_emails_if_needed() {
+	 // Skip when this cleanup already completed.
+	if ( get_option( 'lac_contact_email_deduped_v1' ) ) {
+		return;
+	}
+	 // Find published contact pages by common slugs.
+	$contact_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'name'           => 'contact',
+		)
+	);
+	$contact_us_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'name'           => 'contact-us',
+		)
+	);
+	$page_ids = array_unique( array_merge( $contact_ids, $contact_us_ids ) );
+	 // Collapse duplicated consecutive mailto links to a single address.
+	$duplicate_html = '<a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a><br><a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a>';
+	$single_html    = '<a href="mailto:fenllinskiii16@gmail.com">fenllinskiii16@gmail.com</a>';
+	foreach ( $page_ids as $page_id ) {
+		$page_post = get_post( $page_id );
+		if ( ! $page_post ) {
+			continue;
+		}
+		$new_content = str_replace( $duplicate_html, $single_html, $page_post->post_content );
+		 // Also repair mangled privacy@gmail composite addresses if present.
+		$new_content = str_replace( 'privacy@fenllinskiii16@gmail.com', 'fenllinskiii16@gmail.com', $new_content );
+		if ( $new_content !== $page_post->post_content ) {
+			wp_update_post(
+				array(
+					'ID'           => (int) $page_id,
+					'post_content' => $new_content,
+				)
+			);
+		}
+	}
+	 // Mark complete so the rewrite runs only once.
+	update_option( 'lac_contact_email_deduped_v1', 1, true );
+	lac_log_info( 'Deduped Contact page Legal & privacy email links.' );
+}
+
+ // Run after the .local email replacement so duplicates from that pass are cleaned.
+add_action( 'init', 'lac_fix_duplicate_contact_emails_if_needed', 32 );

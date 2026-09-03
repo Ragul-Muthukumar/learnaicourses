@@ -7,5 +7,91 @@
 			"title": "Learning Path",
 			"postTypes": [ "page" ]
 		}
-	]
+	],
+	"settings": {
+		"typography": {
+			"defaultFontSizes": false,
+			"fluid": true,
+			"fontSizes": [
+				{
+					"fluid": false,
+					"name": "Tiny",
+					"size": "clamp(6px, calc(0.38rem + ((1vw - 3.2px) * 0.48)), 11px)",
+					"slug": "tiny"
+				},
+				{
+					"fluid": false,
+					"name": "Petite",
+					"size": "clamp(7px, calc(0.44rem + ((1vw - 3.2px) * 0.55)), 12.5px)",
+					"slug": "petite"
+				},
+				{
+					"fluid": false,
+					"name": "Small",
+					"size": "clamp(7.5px, calc(0.47rem + ((1vw - 3.2px) * 0.58)), 13px)",
+					"slug": "small"
+				},
+				{
+					"fluid": {
+						"max": "16px",
+						"min": "13px"
+					},
+					"name": "Regular",
+					"size": "clamp(13px, calc(0.81rem + ((1vw - 3.2px) * 0.6)), 16px)",
+					"slug": "regular"
+				},
+				{
+					"fluid": {
+						"max": "16px",
+						"min": "9.5px"
+					},
+					"name": "Large",
+					"size": "clamp(9.5px, calc(0.56rem + ((1vw - 3.2px) * 0.68)), 16px)",
+					"slug": "large"
+				},
+				{
+					"fluid": {
+						"max": "17px",
+						"min": "15px"
+					},
+					"name": "Extra Large",
+					"size": "clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 0.42)), 17px)",
+					"slug": "extra-large"
+				},
+				{
+					"fluid": {
+						"max": "26px",
+						"min": "15px"
+					},
+					"name": "Huge",
+					"size": "clamp(15px, calc(0.94rem + ((1vw - 3.2px) * 1.1)), 26px)",
+					"slug": "huge"
+				},
+				{
+					"fluid": {
+						"max": "33px",
+						"min": "19px"
+					},
+					"name": "Gigantic",
+					"size": "clamp(19px, calc(1.2rem + ((1vw - 3.2px) * 1.4)), 33px)",
+					"slug": "gigantic"
+				},
+				{
+					"fluid": {
+						"max": "44px",
+						"min": "24px"
+					},
+					"name": "Colossus",
+					"size": "clamp(24px, calc(1.5rem + ((1vw - 3.2px) * 1.9)), 44px)",
+					"slug": "colossus"
+				},
+				{
+					"fluid": false,
+					"name": "Button",
+					"size": "clamp(8.5px, calc(0.52rem + ((1vw - 3.2px) * 0.6)), 14px)",
+					"slug": "button"
+				}
+			]
+		}
+	}
 }

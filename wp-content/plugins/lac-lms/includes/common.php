@@ -37,6 +37,30 @@ function lac_log_error( $message ) {
 }
 
 /**
+ * Allow public learner registration on the site.
+ *
+ * WordPress blocks /wp-login.php?action=register until users_can_register is 1.
+ *
+ * @return void
+ */
+function lac_enable_user_registration_if_needed() {
+	 // Turn on membership registration when it is currently disabled.
+	if ( '1' !== (string) get_option( 'users_can_register' ) ) {
+		update_option( 'users_can_register', 1 );
+		lac_log_info( 'Enabled WordPress user registration (users_can_register=1).' );
+	}
+	 // New self-registered learners should start as subscribers, not admins.
+	$default_role = get_option( 'default_role', 'subscriber' );
+	if ( 'subscriber' !== $default_role ) {
+		update_option( 'default_role', 'subscriber' );
+		lac_log_info( 'Set default_role to subscriber for new registrations.' );
+	}
+}
+
+ // Ensure registration stays available for course checkout / enroll flows.
+add_action( 'init', 'lac_enable_user_registration_if_needed', 5 );
+
+/**
  * Encrypt a numeric id with bcrypt for safe public responses.
  *
  * @param int $raw_id Internal WordPress post or user id.
