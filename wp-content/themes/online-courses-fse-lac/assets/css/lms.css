@@ -1378,7 +1378,8 @@ body.lac-is-bingeme-checkout header .wp-block-woocommerce-customer-account,
 body.lac-is-bingeme-checkout header .wc-block-customer-account,
 body.lac-is-bingeme-checkout footer,
 body.lac-is-bingeme-checkout .wp-block-template-part[data-area="footer"],
-body.lac-is-bingeme-checkout .lac-checkout__back:not(.lac-checkout__back--bingeme) {
+body.lac-is-bingeme-checkout .lac-checkout__back:not(.lac-checkout__back--bingeme),
+body.lac-is-bingeme-checkout .lac-checkout__digital-note a {
 	display: none !important;
 }
 

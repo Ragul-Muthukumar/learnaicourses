@@ -304,7 +304,9 @@ function lac_render_checkout_actions( $course_id ) {
 			<p class="lac-checkout__digital-badge"><?php echo esc_html( 'Digital purchase' ); ?></p>
 			<p class="lac-checkout__digital-note">
 				<?php echo esc_html( 'This is an online digital course. Access is delivered immediately after payment. All digital sales are final — no refunds.' ); ?>
-				<a href="<?php echo esc_url( home_url( '/refund-policy/' ) ); ?>"><?php echo esc_html( 'Refund Policy' ); ?></a>
+				<?php if ( ! $is_bg_checkout ) : ?>
+					<a href="<?php echo esc_url( home_url( '/refund-policy/' ) ); ?>"><?php echo esc_html( 'Refund Policy' ); ?></a>
+				<?php endif; ?>
 			</p>
 			<?php
 			if ( lac_paypal_is_configured() && ! lac_paypal_is_mock_mode() ) :
