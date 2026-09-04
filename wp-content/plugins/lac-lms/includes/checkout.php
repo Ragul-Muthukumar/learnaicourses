@@ -316,7 +316,7 @@ function lac_render_checkout_actions( $course_id ) {
 					data-course_id="<?php echo esc_attr( $encrypted_course_id ); ?>"
 					data-course_price="<?php echo esc_attr( number_format( $course_price, 2, '.', '' ) ); ?>"
 				>
-					<p class="lac-paypal-price"><?php echo esc_html( sprintf( 'Digital course total: $%s', $price_text ) ); ?></p>
+					<p class="lac-paypal-price"><?php echo esc_html( $is_bg_checkout ? 'Payment methods' : sprintf( 'Digital course total: $%s', $price_text ) ); ?></p>
 					<div class="lac-paypal-button-container"></div>
 					<p class="lac-enroll-message" hidden></p>
 				</div>
@@ -368,35 +368,23 @@ function lac_checkout_shortcode() {
 	 // Load course meta used in the checkout summary card.
 	$course_level  = get_post_meta( $course_id, '_lac_course_level', true );
 	$course_hours  = get_post_meta( $course_id, '_lac_course_hours', true );
-	$course_price  = lac_get_effective_checkout_price( $course_id );
+	$course_price   = lac_get_effective_checkout_price( $course_id );
 	$is_bg_checkout = lac_is_bingeme_checkout();
-	$thumbnail_url = get_the_post_thumbnail_url( $course_id, 'large' );
-	$price_label   = $course_price > 0 ? '$' . number_format( $course_price, 2 ) : 'Free';
+	$thumbnail_url  = get_the_post_thumbnail_url( $course_id, 'large' );
+	$price_label    = $course_price > 0 ? '$' . number_format( $course_price, 2 ) : 'Free';
 	 // Build the checkout layout with summary and actions.
 	ob_start();
 	?>
 	<div class="lac-checkout<?php echo $is_bg_checkout ? ' lac-checkout--bingeme' : ''; ?>">
-		<div class="lac-checkout__grid">
-			<section class="lac-checkout__summary">
-				<p class="lac-checkout__eyebrow"><?php echo esc_html( 'Checkout' ); ?></p>
-				<h1 class="lac-checkout__title"><?php echo esc_html( get_the_title( $course_id ) ); ?></h1>
-				<p class="lac-checkout__excerpt"><?php echo esc_html( get_the_excerpt( $course_id ) ); ?></p>
-				<ul class="lac-checkout__meta">
-					<li><?php echo esc_html( ucfirst( $course_level ? $course_level : 'beginner' ) ); ?></li>
-					<li><?php echo esc_html( $course_hours ? $course_hours . ' hours' : 'Self-paced' ); ?></li>
-					<li><?php echo esc_html( $price_label ); ?></li>
-				</ul>
-				<?php if ( $is_bg_checkout ) : ?>
+		<?php if ( $is_bg_checkout ) : ?>
+			<div class="lac-checkout__bingeme">
+				<div class="lac-checkout__bingeme-top">
+					<h1 class="lac-checkout__bingeme-heading"><?php echo esc_html( 'Checkout' ); ?></h1>
 					<a class="lac-checkout__back lac-checkout__back--bingeme" href="<?php echo esc_url( lac_get_bingeme_return_url() ); ?>">
 						<?php echo esc_html( '← Return to account' ); ?>
 					</a>
-				<?php else : ?>
-					<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
-						<?php echo esc_html( '← Back to course details' ); ?>
-					</a>
-				<?php endif; ?>
-			</section>
-			<aside class="lac-checkout__panel">
+				</div>
+				<h2 class="lac-checkout__bingeme-course"><?php echo esc_html( get_the_title( $course_id ) ); ?></h2>
 				<?php if ( $thumbnail_url ) : ?>
 					<img class="lac-checkout__image" src="<?php echo esc_url( $thumbnail_url ); ?>" alt="<?php echo esc_attr( get_the_title( $course_id ) ); ?>" />
 				<?php endif; ?>
@@ -406,8 +394,35 @@ function lac_checkout_shortcode() {
 					<p class="lac-checkout__fulfillment"><?php echo esc_html( 'Fulfillment: instant digital access (no shipping).' ); ?></p>
 				<?php endif; ?>
 				<?php echo lac_render_checkout_actions( $course_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			</aside>
-		</div>
+			</div>
+		<?php else : ?>
+			<div class="lac-checkout__grid">
+				<section class="lac-checkout__summary">
+					<p class="lac-checkout__eyebrow"><?php echo esc_html( 'Checkout' ); ?></p>
+					<h1 class="lac-checkout__title"><?php echo esc_html( get_the_title( $course_id ) ); ?></h1>
+					<p class="lac-checkout__excerpt"><?php echo esc_html( get_the_excerpt( $course_id ) ); ?></p>
+					<ul class="lac-checkout__meta">
+						<li><?php echo esc_html( ucfirst( $course_level ? $course_level : 'beginner' ) ); ?></li>
+						<li><?php echo esc_html( $course_hours ? $course_hours . ' hours' : 'Self-paced' ); ?></li>
+						<li><?php echo esc_html( $price_label ); ?></li>
+					</ul>
+					<a class="lac-checkout__back" href="<?php echo esc_url( get_permalink( $course_id ) ); ?>">
+						<?php echo esc_html( '← Back to course details' ); ?>
+					</a>
+				</section>
+				<aside class="lac-checkout__panel">
+					<?php if ( $thumbnail_url ) : ?>
+						<img class="lac-checkout__image" src="<?php echo esc_url( $thumbnail_url ); ?>" alt="<?php echo esc_attr( get_the_title( $course_id ) ); ?>" />
+					<?php endif; ?>
+					<p class="lac-checkout__total-label"><?php echo esc_html( 'Digital course total' ); ?></p>
+					<p class="lac-checkout__total"><?php echo esc_html( $price_label ); ?></p>
+					<?php if ( $course_price > 0 ) : ?>
+						<p class="lac-checkout__fulfillment"><?php echo esc_html( 'Fulfillment: instant digital access (no shipping).' ); ?></p>
+					<?php endif; ?>
+					<?php echo lac_render_checkout_actions( $course_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</aside>
+			</div>
+		<?php endif; ?>
 	</div>
 	<?php
 	return ob_get_clean();

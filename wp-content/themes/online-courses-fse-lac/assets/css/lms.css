@@ -1394,3 +1394,78 @@ body.lac-is-bingeme-checkout header .wp-block-site-logo {
 body.lac-is-bingeme-checkout .lac-checkout__back--bingeme {
 	display: inline-flex !important;
 }
+
+/* Bingeme: single payment card layout */
+body.lac-is-bingeme-checkout .lac-checkout--bingeme,
+body.lac-fse-lms.lac-is-bingeme-checkout .lac-checkout--bingeme {
+	width: 100%;
+	max-width: 560px;
+	margin: 0 auto;
+	padding: 0 1rem 2rem;
+	box-sizing: border-box;
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme {
+	background: var(--lac-card, #fff);
+	border: 1px solid var(--lac-line, #e5e7eb);
+	border-radius: 16px;
+	padding: 1.35rem 1.25rem 1.5rem;
+	box-sizing: border-box;
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.65rem;
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme-heading {
+	margin: 0;
+	font-size: clamp(1.75rem, 5vw, 2.15rem);
+	font-weight: 800;
+	line-height: 1.15;
+	color: var(--lac-heading, #0f172a);
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme-top .lac-checkout__back--bingeme {
+	flex-shrink: 0;
+	margin-top: 0.35rem;
+	font-size: 0.92rem;
+	font-weight: 650;
+	text-decoration: none;
+	color: var(--lac-primary, #0f766e);
+	white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+	body.lac-is-bingeme-checkout .lac-checkout__bingeme-top {
+		flex-wrap: wrap;
+	}
+
+	body.lac-is-bingeme-checkout .lac-checkout__bingeme-top .lac-checkout__back--bingeme {
+		white-space: normal;
+		margin-left: auto;
+	}
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme-course {
+	margin: 0 0 1rem;
+	font-size: clamp(1.05rem, 3.2vw, 1.25rem);
+	font-weight: 650;
+	line-height: 1.35;
+	color: var(--lac-heading, #0f172a);
+}
+
+body.lac-is-bingeme-checkout .lac-checkout__bingeme .lac-checkout__image {
+	width: 100%;
+	margin-bottom: 1rem;
+}
+
+body.lac-is-bingeme-checkout .lac-paypal-price {
+	margin: 0 0 0.75rem;
+	font-size: 1rem;
+	font-weight: 750;
+	color: var(--lac-heading, #0f172a);
+}
