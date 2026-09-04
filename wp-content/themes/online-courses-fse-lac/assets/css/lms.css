@@ -1368,7 +1368,7 @@ body.lac-fse-lms.lac-is-checkout .lac-checkout__meta {
 	}
 }
 
-/* Bingeme checkout: logo only in header; no site nav / account / cart / footer. */
+/* Bingeme checkout only (bg_cart_data cookie): logo only in header; no site nav / account / cart / footer. */
 body.lac-is-bingeme-checkout header .wp-block-navigation,
 body.lac-is-bingeme-checkout header .wp-block-navigation__responsive-container-open,
 body.lac-is-bingeme-checkout header .wp-block-buttons,

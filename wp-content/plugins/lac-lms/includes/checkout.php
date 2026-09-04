@@ -45,15 +45,23 @@ function lac_get_bingeme_session() {
 
 /**
  * Whether the current checkout is a Bingeme deposit payment via LMS UI.
+ * Requires the bg_cart_data cookie set by /bgcart/?txn_id=...
  *
  * @return bool
  */
 function lac_is_bingeme_checkout() {
+	if ( empty( $_COOKIE['bg_cart_data'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		return false;
+	}
 	if ( function_exists( 'bg_is_lms_checkout_session' ) && bg_is_lms_checkout_session() ) {
 		return true;
 	}
 	$session = lac_get_bingeme_session();
-	return ! empty( $session['lms'] ) && ! empty( $session['id'] ) && isset( $session['amount'] ) && (float) $session['amount'] > 0;
+	return ! empty( $session['lms'] )
+		&& ! empty( $session['id'] )
+		&& isset( $session['amount'] )
+		&& (float) $session['amount'] > 0
+		&& ! empty( $session['course_id'] );
 }
 
 /**
