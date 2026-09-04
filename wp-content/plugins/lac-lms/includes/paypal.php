@@ -217,6 +217,31 @@ function lac_paypal_api_base() {
 }
 
 /**
+ * Build a cache key for the PayPal access token.
+ *
+ * Key includes mode + a short client-id hash so switching sandbox↔live
+ * (or rotating credentials) never reuses a stale token against the wrong API.
+ *
+ * @return string Transient name.
+ */
+function lac_paypal_access_token_cache_key() {
+	$fingerprint = substr( hash( 'sha256', lac_paypal_mode() . '|' . lac_paypal_client_id() ), 0, 12 );
+	return 'lac_paypal_access_token_' . lac_paypal_mode() . '_' . $fingerprint;
+}
+
+/**
+ * Drop any cached PayPal access tokens (legacy + current key).
+ *
+ * Call after changing PAYPAL_* credentials in wp-config.
+ *
+ * @return void
+ */
+function lac_paypal_clear_access_token_cache() {
+	delete_transient( 'lac_paypal_access_token' );
+	delete_transient( lac_paypal_access_token_cache_key() );
+}
+
+/**
  * Fetch a short-lived OAuth access token from PayPal.
  *
  * @return string|WP_Error Access token string or error object.
@@ -227,11 +252,14 @@ function lac_paypal_get_access_token() {
 		lac_log_error( 'PayPal access token requested without credentials.' );
 		return new WP_Error( 'paypal_not_configured', 'PayPal is not configured.', array( 'status' => 503 ) );
 	}
-	 // Reuse a cached token while it remains valid.
-	$cached_token = get_transient( 'lac_paypal_access_token' );
+	 // Reuse a cached token while it remains valid for this mode + client.
+	$cache_key    = lac_paypal_access_token_cache_key();
+	$cached_token = get_transient( $cache_key );
 	if ( is_string( $cached_token ) && $cached_token !== '' ) {
 		return $cached_token;
 	}
+	 // Drop the legacy unscoped transient so old sandbox tokens cannot leak.
+	delete_transient( 'lac_paypal_access_token' );
 	 // Build Basic auth from client id and secret.
 	$auth_header = base64_encode( lac_paypal_client_id() . ':' . lac_paypal_client_secret() );
 	 // Request a client-credentials token from PayPal.
@@ -254,16 +282,34 @@ function lac_paypal_get_access_token() {
 		return $response;
 	}
 	 // Decode the JSON body from PayPal.
-	$body = json_decode( wp_remote_retrieve_body( $response ), true );
+	$raw_body = wp_remote_retrieve_body( $response );
+	$body     = json_decode( $raw_body, true );
 	 // Require a successful HTTP status and access_token field.
 	$status_code = (int) wp_remote_retrieve_response_code( $response );
 	if ( $status_code < 200 || $status_code >= 300 || empty( $body['access_token'] ) ) {
-		lac_log_error( 'PayPal token response invalid with status ' . $status_code );
-		return new WP_Error( 'paypal_token_failed', 'Could not authenticate with PayPal.', array( 'status' => 502 ) );
+		$error_name = is_array( $body ) && isset( $body['error'] ) ? $body['error'] : 'unknown';
+		$error_desc = is_array( $body ) && isset( $body['error_description'] ) ? $body['error_description'] : '';
+		lac_log_error(
+			'PayPal token response invalid with status ' . $status_code
+			. ' / ' . sanitize_text_field( (string) $error_name )
+			. ( '' !== $error_desc ? ' — ' . sanitize_text_field( (string) $error_desc ) : '' )
+		);
+		return new WP_Error(
+			'paypal_token_failed',
+			'Could not authenticate with PayPal.',
+			array(
+				'status'          => 502,
+				'paypal_status'   => $status_code,
+				'paypal_error'    => sanitize_text_field( (string) $error_name ),
+				'paypal_message'  => sanitize_text_field( (string) $error_desc ),
+				'paypal_mode'     => lac_paypal_mode(),
+				'paypal_api_base' => lac_paypal_api_base(),
+			)
+		);
 	}
 	 // Cache slightly shorter than the reported expiry window.
 	$expires_in = isset( $body['expires_in'] ) ? max( 60, absint( $body['expires_in'] ) - 60 ) : 300;
-	set_transient( 'lac_paypal_access_token', $body['access_token'], $expires_in );
+	set_transient( $cache_key, $body['access_token'], $expires_in );
 	 // Log success without printing the secret token value.
 	lac_log_info( 'PayPal access token acquired for mode ' . lac_paypal_mode() );
 	 // Return the bearer token for subsequent Orders API calls.
@@ -278,7 +324,7 @@ function lac_paypal_get_access_token() {
  * @param array  $payload Optional JSON body as an associative array.
  * @return array|WP_Error Decoded response body or error object.
  */
-function lac_paypal_api_request( $method, $path, $payload = array() ) {
+function lac_paypal_api_request( $method, $path, $payload = array(), $retried = false ) {
 	 // Obtain a bearer token before calling the Orders API.
 	$access_token = lac_paypal_get_access_token();
 	if ( is_wp_error( $access_token ) ) {
@@ -306,12 +352,43 @@ function lac_paypal_api_request( $method, $path, $payload = array() ) {
 	}
 	 // Decode the response body for callers.
 	$status_code = (int) wp_remote_retrieve_response_code( $response );
-	$body        = json_decode( wp_remote_retrieve_body( $response ), true );
+	$raw_body    = wp_remote_retrieve_body( $response );
+	$body        = json_decode( $raw_body, true );
 	 // Treat non-2xx PayPal responses as errors with a safe message.
 	if ( $status_code < 200 || $status_code >= 300 ) {
 		$error_name = is_array( $body ) && isset( $body['name'] ) ? $body['name'] : 'unknown';
-		lac_log_error( 'PayPal API ' . $path . ' failed with ' . $status_code . ' / ' . $error_name );
-		return new WP_Error( 'paypal_api_failed', 'PayPal request failed.', array( 'status' => 502 ) );
+		$error_msg  = is_array( $body ) && isset( $body['message'] ) ? $body['message'] : '';
+		$debug_id   = is_array( $body ) && isset( $body['debug_id'] ) ? $body['debug_id'] : '';
+		$details    = '';
+		if ( is_array( $body ) && ! empty( $body['details'][0]['description'] ) ) {
+			$details = (string) $body['details'][0]['description'];
+		} elseif ( is_array( $body ) && ! empty( $body['details'][0]['issue'] ) ) {
+			$details = (string) $body['details'][0]['issue'];
+		}
+		// Auth failures after a mode/credential switch: drop cached token and retry once.
+		if ( ! $retried && in_array( $status_code, array( 401, 403 ), true ) ) {
+			lac_paypal_clear_access_token_cache();
+			return lac_paypal_api_request( $method, $path, $payload, true );
+		}
+		lac_log_error(
+			'PayPal API ' . $path . ' failed with ' . $status_code . ' / ' . sanitize_text_field( (string) $error_name )
+			. ( '' !== $error_msg ? ' — ' . sanitize_text_field( (string) $error_msg ) : '' )
+			. ( '' !== $details ? ' — ' . sanitize_text_field( $details ) : '' )
+			. ( '' !== $debug_id ? ' (debug_id: ' . sanitize_text_field( (string) $debug_id ) . ')' : '' )
+		);
+		return new WP_Error(
+			'paypal_api_failed',
+			'PayPal request failed.',
+			array(
+				'status'          => 502,
+				'paypal_status'   => $status_code,
+				'paypal_error'    => sanitize_text_field( (string) $error_name ),
+				'paypal_message'  => sanitize_text_field( (string) ( '' !== $details ? $details : $error_msg ) ),
+				'paypal_debug_id' => sanitize_text_field( (string) $debug_id ),
+				'paypal_mode'     => lac_paypal_mode(),
+				'paypal_api_base' => lac_paypal_api_base(),
+			)
+		);
 	}
 	 // Normalize a null body into an empty array for callers.
 	return is_array( $body ) ? $body : array();
