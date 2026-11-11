@@ -1,8 +1,17 @@
-# Learn AI Courses — Apache rewrite rules for the named vhost.
-# Process: send pretty permalinks to index.php while allowing real files.
+# Learn AI Courses — permalinks, and a block on the PHP paths used in the November 2026 incident.
+
+# Direct HTTP requests for wp-config.php are refused. WordPress still reads the file from disk.
+<IfModule mod_authz_core.c>
+	<Files wp-config.php>
+		Require all denied
+	</Files>
+</IfModule>
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Webshells were written under uploads. Images stay reachable; PHP files there do not run.
+RewriteRule ^wp-content/uploads/.+\.(php|phtml|php[0-9]|phar|cgi)$ - [F,L]
+RewriteRule ^wp-content/(upgrade|cache|backup-db|database)/.+\.(php|phtml|php[0-9]|phar)$ - [F,L]
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteBase /
 RewriteRule ^index\.php$ - [L]

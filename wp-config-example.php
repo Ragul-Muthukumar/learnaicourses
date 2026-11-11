@@ -28,6 +28,14 @@ define( 'WP_DEBUG_LOG', true );
 define( 'WP_DEBUG_DISPLAY', false );
 define( 'FS_METHOD', 'direct' );
 
+// Not the lock. The must-use plugin stores the real rule in the {prefix}learnaicourses_guard table
+// and ignores this constant. Editing wp-config.php cannot create another administrator
+// or turn plugin installs back on. Left defined so older notes still match the owner id.
+define( 'LAC_LOCK_ADMIN_ID', 1 );
+
+// Theme and plugin editors stay closed. Installs are blocked by the must-use lockdown plugin.
+define( 'DISALLOW_FILE_EDIT', true );
+
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }

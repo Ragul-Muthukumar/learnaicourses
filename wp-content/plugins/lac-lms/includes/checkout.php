@@ -36,10 +36,11 @@ function lac_get_bingeme_session() {
 	if ( function_exists( 'bg_get_cart_session' ) ) {
 		return bg_get_cart_session();
 	}
-	if ( empty( $_COOKIE['bg_cart_data'] ) ) {
+	if ( empty( $_COOKIE['bg_cart_data'] ) || ! is_string( $_COOKIE['bg_cart_data'] ) ) {
 		return array();
 	}
-	$data = maybe_unserialize( wp_unslash( $_COOKIE['bg_cart_data'] ) );
+	// Same rule as bgcheckout: do not construct objects stored in this cookie.
+	$data = unserialize( wp_unslash( $_COOKIE['bg_cart_data'] ), array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
 	return is_array( $data ) ? $data : array();
 }
 

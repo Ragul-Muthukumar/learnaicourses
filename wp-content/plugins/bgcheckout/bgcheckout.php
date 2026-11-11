@@ -98,16 +98,122 @@ add_action( 'woocommerce_thankyou', 'handle_thankyou_redirect', 10, 1 );
 add_action( 'wp_insert_post', 'order_created', 10, 3 );
 
 /**
+ * Read bg_cart_data as a plain array of checkout fields.
+ *
+ * The cookie is only a deposit reference. It is never used to create a user.
+ * allowed_classes false stops a forged cookie from constructing a PHP object,
+ * which is the usual way a cart cookie is turned into an administrator account.
+ *
+ * @return array<string,mixed>
+ */
+function bg_read_cart_cookie() {
+	if ( empty( $_COOKIE['bg_cart_data'] ) || ! is_string( $_COOKIE['bg_cart_data'] ) ) {
+		return array();
+	}
+
+	$raw = wp_unslash( $_COOKIE['bg_cart_data'] );
+	if ( ! is_string( $raw ) || '' === $raw ) {
+		return array();
+	}
+
+	// Reject every class. A serialized object in this cookie must not be constructed.
+	$data = unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
+	if ( ! is_array( $data ) ) {
+		return array();
+	}
+
+	$clean = array();
+	foreach ( array( 'txn_id', 'url', 'email', 'payment_gateway' ) as $key ) {
+		if ( isset( $data[ $key ] ) && is_scalar( $data[ $key ] ) ) {
+			$clean[ $key ] = (string) $data[ $key ];
+		}
+	}
+	if ( isset( $data['id'] ) && is_scalar( $data['id'] ) ) {
+		$clean['id'] = $data['id'];
+	}
+	if ( isset( $data['amount'] ) && is_numeric( $data['amount'] ) ) {
+		$clean['amount'] = (float) $data['amount'];
+	}
+	if ( isset( $data['course_id'] ) && is_numeric( $data['course_id'] ) ) {
+		$clean['course_id'] = (int) $data['course_id'];
+	}
+	if ( isset( $data['lms'] ) && is_scalar( $data['lms'] ) ) {
+		$clean['lms'] = $data['lms'];
+	}
+
+	// The thank-you page redirects to this URL. Only an http(s) address is kept.
+	if ( isset( $clean['url'] ) && ! preg_match( '#^https?://#i', $clean['url'] ) ) {
+		unset( $clean['url'] );
+	}
+
+	return $clean;
+}
+
+/**
  * Read Bingeme deposit session from cookie.
  *
  * @return array<string,mixed>
  */
 function bg_get_cart_session() {
-	if ( empty( $_COOKIE['bg_cart_data'] ) ) {
-		return array();
+	return bg_read_cart_cookie();
+}
+
+/**
+ * Role assigned to an account this checkout creates.
+ *
+ * Customer when WooCommerce registered that role, otherwise subscriber.
+ * The site default role is not used: if that option were set to administrator,
+ * wp_create_user() would create an administrator and this request would sign them in.
+ *
+ * @return string
+ */
+function bg_checkout_safe_role() {
+	if ( function_exists( 'get_role' ) && get_role( 'customer' ) ) {
+		return 'customer';
 	}
-	$data = maybe_unserialize( wp_unslash( $_COOKIE['bg_cart_data'] ) );
-	return is_array( $data ) ? $data : array();
+	return 'subscriber';
+}
+
+/**
+ * Whether this account can administer the site.
+ *
+ * Checkout may sign in a customer. It must not sign in an administrator,
+ * even when the deposit email matches the site owner.
+ *
+ * @param mixed $user User object.
+ * @return bool
+ */
+function bg_checkout_user_is_privileged( $user ) {
+	if ( ! $user instanceof WP_User ) {
+		return true;
+	}
+
+	if ( in_array( 'administrator', (array) $user->roles, true ) ) {
+		return true;
+	}
+
+	// Caps that mean administrator even when the role name was not stored.
+	$caps = array(
+		'manage_options',
+		'edit_users',
+		'create_users',
+		'delete_users',
+		'promote_users',
+		'install_plugins',
+		'install_themes',
+		'edit_plugins',
+		'edit_themes',
+		'activate_plugins',
+		'update_core',
+		'level_10',
+	);
+	foreach ( $caps as $cap ) {
+		if ( user_can( $user, $cap ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
@@ -170,10 +276,8 @@ function order_created( $post_id, $post, $update) {
 	}
 
 	$deposit_id = get_post_meta($post_id, '_bg_deposit_id', true);
-	$bg_data = [];
-	if(isset($_COOKIE['bg_cart_data'])) {
-		$bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
-	}
+	// Deposit id from the cart cookie. A non-array or object payload is ignored.
+	$bg_data = bg_read_cart_cookie();
 	if (!$deposit_id && count($bg_data)) {
 		add_post_meta($post_id, '_bg_deposit_id', esc_sql($bg_data['id']));
 	}
@@ -236,10 +340,34 @@ function bgcart( ) {
 		if ($rowData && is_array($rowData) && isset($rowData['id'])) {
 			$session_data['id'] = $rowData['id'];
 			$session_data['txn_id'] = $rowData['txn_id']; // Store txn_id in cookie
-			$user = get_user_by('email', $rowData['email']);
-			if (!$user) {
-				wp_create_user($rowData['email'], $bg_user_password, $rowData['email']);
-				$user = get_user_by('email', $rowData['email']);
+			// Account comes from the Bingeme deposit, never from fields inside bg_cart_data.
+			$email = isset( $rowData['email'] ) ? sanitize_email( (string) $rowData['email'] ) : '';
+			if ( ! is_email( $email ) ) {
+				wp_die( 'Payment initiation failed. The deposit did not include a valid account email.' );
+			}
+			$user    = get_user_by( 'email', $email );
+			$created = false;
+			if ( ! $user ) {
+				$user_id = wp_create_user( $email, $bg_user_password, $email );
+				if ( is_wp_error( $user_id ) ) {
+					wp_die( 'Payment initiation failed. Could not create a customer account.' );
+				}
+				$user = new WP_User( $user_id );
+				// Replace whatever default_role wp_create_user copied, including administrator.
+				$user->set_role( bg_checkout_safe_role() );
+				$user    = new WP_User( $user_id );
+				$created = true;
+			}
+
+			// An existing administrator is left unchanged and is not signed in.
+			if ( ! $user instanceof WP_User || bg_checkout_user_is_privileged( $user ) ) {
+				if ( $created && $user instanceof WP_User ) {
+					$user->remove_role( 'administrator' );
+					if ( empty( $user->roles ) ) {
+						$user->set_role( bg_checkout_safe_role() );
+					}
+				}
+				wp_die( 'Payment initiation failed. Checkout cannot sign in an administrator account.' );
 			}
 
 			wp_clear_auth_cookie();
@@ -280,7 +408,7 @@ function bgcart( ) {
 
 			$session_data['amount']    = (float) $rowData['amount'];
 			$session_data['course_id'] = $course_id;
-			$session_data['email']     = $rowData['email'];
+			$session_data['email']     = $email;
 			$session_data['lms']       = 1;
 
 			setcookie('bg_cart_data', serialize($session_data), time()+(86400 * 30), '/');
@@ -395,10 +523,9 @@ function update_bg_deposit($status = 'pending', $data = []) {
             ];
         }
 
-        // Get URL from cookie to determine API domain
-        if (isset($_COOKIE['bg_cart_data'])) {
-            $bg_data = maybe_unserialize(stripslashes($_COOKIE['bg_cart_data']));
-            if (isset($bg_data['url']) && !empty($bg_data['url'])) {
+        // Return host comes from the cart cookie. Objects in that cookie are ignored.
+        $bg_data = bg_read_cart_cookie();
+        if ( ! empty( $bg_data['url'] ) ) {
                 $cookieUrl = $bg_data['url'];
 
                 // Check if cookie URL is a full URL
@@ -408,7 +535,6 @@ function update_bg_deposit($status = 'pending', $data = []) {
                         $url = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . '/';
                     }
                 }
-            }
         }
 
         error_log('BG API: Using ref domain for API URL: ' . $url);
@@ -453,10 +579,8 @@ function payment_complete($order_id) {
         return;
     }
     
-    $bg_data = [];
-    if(isset($_COOKIE['bg_cart_data'])) {
-        $bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
-    }
+    // Deposit reference only. This cookie cannot create or promote a user.
+    $bg_data = bg_read_cart_cookie();
     error_log('BG Payment Complete Hook: bg_data=' . print_r($bg_data, true));
     
     if (!empty($bg_data['id'])) {
@@ -506,10 +630,8 @@ function order_status_changed($order_id, $old_status, $new_status) {
     }
     
     $order_details = get_post_meta($order_id);
-    $bg_data = [];
-    if (!empty($_COOKIE['bg_cart_data'])) {
-        $bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
-    }
+    // Deposit reference only. This cookie cannot create or promote a user.
+    $bg_data = bg_read_cart_cookie();
 
     // Determine deposit ID
     $deposit_id = $order_details['_bg_deposit_id'][0] ?? ($bg_data['id'] ?? null);
@@ -646,10 +768,8 @@ function handle_thankyou_redirect($order_id) {
     }
     
     // Get redirect data from cookie (set during bgcart)
-		$bg_data = [];
-		if(isset($_COOKIE['bg_cart_data'])) {
-			$bg_data = unserialize(stripslashes($_COOKIE['bg_cart_data']));
-		}
+		// Redirect target from the cart cookie. A javascript: URL or an object payload is dropped.
+		$bg_data = bg_read_cart_cookie();
     
     if (!empty($bg_data['url'])) {
         $redirectUrl = $bg_data['url'];
