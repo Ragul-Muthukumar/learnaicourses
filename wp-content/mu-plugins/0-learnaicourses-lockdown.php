@@ -57,6 +57,230 @@ function lac_guard_allowed_plugins() {
 }
 
 /**
+ * Theme folders that may stay under wp-content/themes.
+ * A theme dropped beside these is quarantined and triggers a Telegram alert.
+ *
+ * @return string[]
+ */
+function lac_guard_allowed_themes() {
+	return array(
+		'twentytwentythree',
+		'twentytwentyfour',
+		'twentytwentyfive',
+		'online-courses-fse',
+		'online-courses-fse-lac',
+		'learn-ai-courses',
+		'kadence',
+		'elearning-education',
+		'elearning-education-lac',
+		'consulting',
+		'bosa',
+		'bosa-ai-robotics',
+		'blocksy',
+		'astra',
+		'astra-learnaicourses',
+		'ai-engine',
+	);
+}
+
+/**
+ * Telegram bot credentials for security alerts.
+ * Prefer wp-config constants so the pepper in this file stays the only seal secret.
+ * Leave both empty to disable outbound alerts without breaking the lock.
+ *
+ * define( 'TELEGRAM_BOT_TOKEN', '123456:ABC...' );
+ * define( 'TELEGRAM_CHAT_ID', '-1001234567890' );
+ *
+ * @return array{token:string,chat_id:string}
+ */
+function lac_guard_telegram_credentials() {
+	$token   = defined( 'TELEGRAM_BOT_TOKEN' ) ? trim( (string) TELEGRAM_BOT_TOKEN ) : '';
+	$chat_id = defined( 'TELEGRAM_CHAT_ID' ) ? trim( (string) TELEGRAM_CHAT_ID ) : '';
+	return array(
+		'token'   => $token,
+		'chat_id' => $chat_id,
+	);
+}
+
+/**
+ * Request context included in every alert (actor, IP, URI).
+ *
+ * @return array<string, string>
+ */
+function lac_guard_alert_context() {
+	$uid   = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+	$login = '';
+	if ( $uid > 0 && function_exists( 'get_userdata' ) ) {
+		$user = get_userdata( $uid );
+		if ( $user ) {
+			$login = (string) $user->user_login;
+		}
+	}
+	$ip = '';
+	if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && is_string( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+		$parts = explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] );
+		$ip    = trim( (string) $parts[0] );
+	} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ) {
+		$ip = (string) $_SERVER['REMOTE_ADDR'];
+	}
+	$uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	$host = function_exists( 'home_url' ) ? (string) home_url() : ( isset( $_SERVER['HTTP_HOST'] ) ? (string) $_SERVER['HTTP_HOST'] : 'learnaicourses' );
+
+	return array(
+		'site'   => $host,
+		'user'   => $uid > 0 ? $uid . ( $login ? ' (' . $login . ')' : '' ) : 'none',
+		'ip'     => $ip !== '' ? $ip : 'unknown',
+		'uri'    => $uri !== '' ? $uri : '/',
+		'time'   => gmdate( 'Y-m-d H:i:s' ) . ' UTC',
+	);
+}
+
+/**
+ * Queue a security alert. Sent on shutdown so early MU bootstrap can still notify.
+ * Deduped for one hour per event fingerprint so a sticky drop does not flood Telegram.
+ *
+ * @param string               $event   Short event code.
+ * @param array<string, mixed> $details Extra lines for the message.
+ * @return void
+ */
+function lac_guard_alert( $event, $details = array() ) {
+	if ( ! is_string( $event ) || '' === $event ) {
+		return;
+	}
+	if ( ! isset( $GLOBALS['lac_guard_alert_queue'] ) || ! is_array( $GLOBALS['lac_guard_alert_queue'] ) ) {
+		$GLOBALS['lac_guard_alert_queue'] = array();
+	}
+	$GLOBALS['lac_guard_alert_queue'][] = array(
+		'event'   => $event,
+		'details' => is_array( $details ) ? $details : array(),
+	);
+}
+
+/**
+ * Whether this fingerprint was already alerted inside the cooldown window.
+ *
+ * @param string $fingerprint Event fingerprint.
+ * @return bool True when a fresh alert should be sent.
+ */
+function lac_guard_alert_should_send( $fingerprint ) {
+	$dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : dirname( __DIR__ );
+	$file = $dir . '/.lac-guard-alert-cache.json';
+	$now  = time();
+	$ttl  = 3600;
+	$cache = array();
+	if ( is_file( $file ) ) {
+		$raw = (string) file_get_contents( $file );
+		$decoded = json_decode( $raw, true );
+		if ( is_array( $decoded ) ) {
+			$cache = $decoded;
+		}
+	}
+	// Drop expired entries so the cache file stays small.
+	foreach ( $cache as $key => $ts ) {
+		if ( ! is_numeric( $ts ) || ( $now - (int) $ts ) > $ttl ) {
+			unset( $cache[ $key ] );
+		}
+	}
+	$encoded = function_exists( 'wp_json_encode' ) ? wp_json_encode( $cache ) : json_encode( $cache );
+	if ( isset( $cache[ $fingerprint ] ) ) {
+		file_put_contents( $file, (string) $encoded );
+		return false;
+	}
+	$cache[ $fingerprint ] = $now;
+	$encoded = function_exists( 'wp_json_encode' ) ? wp_json_encode( $cache ) : json_encode( $cache );
+	file_put_contents( $file, (string) $encoded );
+	return true;
+}
+
+/**
+ * Send one Telegram message. Uses wp_remote_post when available, otherwise streams.
+ *
+ * @param string $token   Bot token.
+ * @param string $chat_id Chat or group id.
+ * @param string $text    Plain text body.
+ * @return void
+ */
+function lac_guard_telegram_send( $token, $chat_id, $text ) {
+	$url  = 'https://api.telegram.org/bot' . $token . '/sendMessage';
+	$body = array(
+		'chat_id' => $chat_id,
+		'text'    => $text,
+	);
+	if ( function_exists( 'wp_remote_post' ) ) {
+		wp_remote_post(
+			$url,
+			array(
+				'timeout'  => 8,
+				'blocking' => false,
+				'body'     => $body,
+			)
+		);
+		return;
+	}
+	$payload = http_build_query( $body );
+	$ctx     = stream_context_create(
+		array(
+			'http' => array(
+				'method'  => 'POST',
+				'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
+				'content' => $payload,
+				'timeout' => 8,
+			),
+		)
+	);
+	@file_get_contents( $url, false, $ctx );
+}
+
+/**
+ * Flush queued alerts to Telegram once per request.
+ *
+ * @return void
+ */
+function lac_guard_alert_flush() {
+	static $flushed = false;
+	if ( $flushed ) {
+		return;
+	}
+	$flushed = true;
+
+	$creds = lac_guard_telegram_credentials();
+	if ( '' === $creds['token'] || '' === $creds['chat_id'] ) {
+		$GLOBALS['lac_guard_alert_queue'] = array();
+		return;
+	}
+	if ( empty( $GLOBALS['lac_guard_alert_queue'] ) || ! is_array( $GLOBALS['lac_guard_alert_queue'] ) ) {
+		return;
+	}
+
+	$ctx = lac_guard_alert_context();
+	foreach ( $GLOBALS['lac_guard_alert_queue'] as $item ) {
+		$event   = isset( $item['event'] ) ? (string) $item['event'] : 'unknown';
+		$details = isset( $item['details'] ) && is_array( $item['details'] ) ? $item['details'] : array();
+		$fingerprint = md5( $event . '|' . ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $details ) : json_encode( $details ) ) );
+		if ( ! lac_guard_alert_should_send( $fingerprint ) ) {
+			continue;
+		}
+		$lines = array(
+			'Learn AI Courses security alert',
+			'Event: ' . $event,
+			'Site: ' . $ctx['site'],
+			'Time: ' . $ctx['time'],
+			'User: ' . $ctx['user'],
+			'IP: ' . $ctx['ip'],
+			'URI: ' . $ctx['uri'],
+		);
+		foreach ( $details as $key => $value ) {
+			if ( is_scalar( $value ) ) {
+				$lines[] = (string) $key . ': ' . (string) $value;
+			}
+		}
+		lac_guard_telegram_send( $creds['token'], $creds['chat_id'], implode( "\n", $lines ) );
+	}
+	$GLOBALS['lac_guard_alert_queue'] = array();
+}
+add_action( 'shutdown', 'lac_guard_alert_flush', 0 );
+
+/**
  * Plugin directories that match the allow list.
  *
  * @return string[]
@@ -400,6 +624,19 @@ function lac_guard_neuter_foreign_mu_plugins() {
 		return;
 	}
 
+	// Alert once for every foreign mu-plugin dropped into the must-use folder.
+	$names = array();
+	foreach ( $foreign as $path ) {
+		$names[] = basename( $path );
+	}
+	lac_guard_alert(
+		'foreign_mu_plugin_blocked',
+		array(
+			'files'  => implode( ', ', $names ),
+			'action' => 'emptied and renamed aside',
+		)
+	);
+
 	register_shutdown_function(
 		static function () use ( $foreign ) {
 			foreach ( $foreign as $path ) {
@@ -432,6 +669,7 @@ function lac_guard_quarantine_plugins() {
 		return;
 	}
 
+	$quarantined = array();
 	foreach ( $names as $name ) {
 		if ( '.' === $name || '..' === $name ) {
 			continue;
@@ -451,7 +689,77 @@ function lac_guard_quarantine_plugins() {
 		if ( file_exists( $target ) ) {
 			$target .= '-' . gmdate( 'YmdHis' );
 		}
-		@rename( $path, $target );
+		if ( @rename( $path, $target ) ) {
+			$quarantined[] = $name;
+		}
+	}
+
+	if ( $quarantined ) {
+		lac_guard_alert(
+			'new_plugin_quarantined',
+			array(
+				'plugins' => implode( ', ', $quarantined ),
+				'action'  => 'renamed with .disabled suffix',
+			)
+		);
+	}
+}
+
+/**
+ * Move theme directories that are not on the allow list out of wp-content/themes.
+ *
+ * @return void
+ */
+function lac_guard_quarantine_themes() {
+	if ( ! lac_guard_flag( 'block_theme_install' ) ) {
+		return;
+	}
+	if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+		return;
+	}
+	$theme_root = WP_CONTENT_DIR . '/themes';
+	if ( ! is_dir( $theme_root ) ) {
+		return;
+	}
+
+	$allowed = lac_guard_allowed_themes();
+	$names   = scandir( $theme_root );
+	if ( ! is_array( $names ) ) {
+		return;
+	}
+
+	$quarantined = array();
+	foreach ( $names as $name ) {
+		if ( '.' === $name || '..' === $name ) {
+			continue;
+		}
+		$path = $theme_root . '/' . $name;
+		if ( ! is_dir( $path ) ) {
+			continue;
+		}
+		if ( str_ends_with( $name, '.disabled' ) || str_contains( $name, '.disabled-' ) ) {
+			continue;
+		}
+		if ( in_array( $name, $allowed, true ) ) {
+			continue;
+		}
+		$target = $path . '.disabled';
+		if ( file_exists( $target ) ) {
+			$target .= '-' . gmdate( 'YmdHis' );
+		}
+		if ( @rename( $path, $target ) ) {
+			$quarantined[] = $name;
+		}
+	}
+
+	if ( $quarantined ) {
+		lac_guard_alert(
+			'new_theme_quarantined',
+			array(
+				'themes' => implode( ', ', $quarantined ),
+				'action' => 'renamed with .disabled suffix',
+			)
+		);
 	}
 }
 
@@ -590,6 +898,18 @@ function lac_lock_filter_capabilities( $check, $user_id, $meta_key, $meta_value 
 	if ( $clean === $meta_value ) {
 		return $check;
 	}
+
+	// Capabilities were rewritten: someone tried to grant admin power to a non-owner.
+	$had_admin = ! empty( $meta_value['administrator'] );
+	lac_guard_alert(
+		'admin_capability_write_blocked',
+		array(
+			'target_user_id' => (string) (int) $user_id,
+			'had_admin_role'  => $had_admin ? 'yes' : 'no',
+			'action'          => 'capabilities sanitized before write',
+		)
+	);
+
 	$meta_value = $clean;
 
 	$writing = true;
@@ -617,6 +937,15 @@ function lac_lock_strip_admin( $user_id ) {
 	if ( ! $user || ! in_array( 'administrator', (array) $user->roles, true ) ) {
 		return;
 	}
+
+	lac_guard_alert(
+		'admin_role_stripped',
+		array(
+			'target_user_id'    => (string) (int) $user_id,
+			'target_user_login' => (string) $user->user_login,
+			'action'            => 'administrator role removed',
+		)
+	);
 
 	$running = true;
 	$user->remove_role( 'administrator' );
@@ -682,6 +1011,14 @@ function lac_lock_sweep_admins() {
 		if ( $clean === $caps ) {
 			continue;
 		}
+		lac_guard_alert(
+			'admin_sweep_cleaned',
+			array(
+				'target_user_id' => (string) $user_id,
+				'had_admin_role'  => ! empty( $caps['administrator'] ) ? 'yes' : 'no',
+				'action'          => 'usermeta capabilities cleaned on init',
+			)
+		);
 		update_user_meta( $user_id, $cap_key, $clean );
 		$cleaned = new WP_User( $user_id );
 		$cleaned->update_user_level_from_caps();
@@ -742,6 +1079,13 @@ function lac_guard_block_install( $response, $hook_extra ) {
 	$block_theme  = ( 'theme' === $type && lac_guard_flag( 'block_theme_install' ) );
 	// An update of lac-lms, bgcheckout, or WooCommerce is action "update", so it is not rejected here.
 	if ( 'install' === $action && ( $block_plugin || $block_theme ) ) {
+		lac_guard_alert(
+			'install_blocked_by_upgrader',
+			array(
+				'type'   => $type,
+				'action' => $action,
+			)
+		);
 		return new WP_Error( 'lac_guard', 'Installing plugins and themes is blocked by the Learn AI Courses guard table.' );
 	}
 	return $response;
@@ -757,6 +1101,14 @@ function lac_guard_deny_plugin_screen() {
 	if ( ! lac_guard_flag( 'block_plugin_install' ) ) {
 		return;
 	}
+	lac_guard_alert(
+		'plugin_install_screen_blocked',
+		array(
+			'screen' => 'plugin-install-or-editor',
+		)
+	);
+	// Flush before wp_die exits so the Telegram post is not skipped on hard die paths.
+	lac_guard_alert_flush();
 	wp_die( esc_html( 'Plugin installation and editing are blocked by the Learn AI Courses guard table.' ), 'Blocked', array( 'response' => 403 ) );
 }
 
@@ -767,6 +1119,13 @@ function lac_guard_deny_theme_screen() {
 	if ( ! lac_guard_flag( 'block_theme_install' ) ) {
 		return;
 	}
+	lac_guard_alert(
+		'theme_install_screen_blocked',
+		array(
+			'screen' => 'theme-install-or-editor',
+		)
+	);
+	lac_guard_alert_flush();
 	wp_die( esc_html( 'Theme installation and editing are blocked by the Learn AI Courses guard table.' ), 'Blocked', array( 'response' => 403 ) );
 }
 
@@ -781,6 +1140,13 @@ function lac_guard_block_update_screen() {
 	if ( ! in_array( $action, $blocked_actions, true ) ) {
 		return;
 	}
+	lac_guard_alert(
+		'update_screen_install_blocked',
+		array(
+			'request_action' => $action,
+		)
+	);
+	lac_guard_alert_flush();
 	wp_die( esc_html( 'Installing plugins and themes is blocked by the Learn AI Courses guard table.' ), 'Blocked', array( 'response' => 403 ) );
 }
 add_action( 'load-update.php', 'lac_guard_block_update_screen' );
@@ -827,6 +1193,7 @@ add_action( 'admin_notices', 'lac_lock_admin_notice' );
 
 // Run before this file returns. Later mu-plugins are already on WordPress's include list, so they must be emptied now.
 lac_guard_neuter_foreign_mu_plugins();
-lac_guard_quarantine_plugins();
 lac_guard_ensure();
+lac_guard_quarantine_plugins();
+lac_guard_quarantine_themes();
 lac_guard_protect_uploads();
